@@ -1,0 +1,327 @@
+// MailStone Verifier — interface languages.
+//
+// The proof documents exist in French and in English, each with its own
+// section names; a reader checking a French Dossier de preuve must be told
+// where to look in French words. Every visible string lives here, keyed;
+// index.html carries data-i18n / data-i18n-placeholder / data-i18n-title
+// attributes, app.js asks t(key) for what it builds at run time. The
+// language follows the system unless the reader picked one (kept locally).
+//
+// Values may contain inline HTML tags (<strong>, <em>, <code>) when the key
+// is applied with data-i18n-html; plain-text keys are set as textContent.
+
+const I18N = {
+    en: {
+        'topbar.version': 'v2.1',
+        'topbar.about': 'About',
+        'tab.hash': 'Hash Calculation',
+        'tab.timestamp': 'TimeStamp Decoder',
+        'tab.merkle': 'Merkle Verification',
+        'tab.ere': 'ERE Verification',
+
+        'hash.title': 'Calculate SHA-256 Hash',
+        'hash.desc': 'Select a file (Email PDF, attachment, ACK JSON) to calculate its SHA-256 hash.',
+        'hash.drop': 'Click to browse and select a file',
+        'hash.selected': 'Selected file:',
+        'hash.button': 'Generate SHA-256 Hash',
+        'hash.busy': 'Calculating...',
+        'hash.result': 'Hash Calculated',
+        'hash.copied': 'Hash copied to clipboard!',
+        'hash.copy': 'Copy to clipboard',
+        'hash.nodrop': 'Drag & drop is not supported. Please click to browse files.',
+        'hash.selectError': 'Error selecting file: ',
+
+        'ts.title': 'Decode RFC 3161 TimeStamp',
+        'ts.desc': 'Paste the Base64-encoded TSA timestamp token from your proof document ("Jeton ASN.1 horodaté" / "Timestamp token").',
+        'ts.placeholder': 'Paste Base64 timestamp token here (starts with MII...)',
+        'ts.expected': 'Hash the token should cover (optional — a Merkle root from a proof block, or a file hash):',
+        'ts.expectedPlaceholder': '64 hex characters',
+        'ts.button': 'Decode TimeStamp',
+        'ts.busy': 'Decoding...',
+        'ts.result': 'TimeStamp Information',
+        'ts.provider': 'Provider:',
+        'ts.datetime': 'Date & Time:',
+        'ts.serial': 'Serial Number:',
+        'ts.algo': 'Hash Algorithm:',
+        'ts.hash': 'Timestamped Hash:',
+        'ts.status': 'Status:',
+        'ts.signature': 'Token signature:',
+        'ts.signer': 'Signed by:',
+        'ts.issuer': 'Issued by:',
+        'ts.validity': 'Certificate validity:',
+        'ts.covers': 'Covers the given hash:',
+        'ts.sigOk': '✓ Verified against the embedded certificate',
+        'ts.sigKo': '✗ Not verified',
+        'ts.coversYes': '✓ Yes — this timestamp dates that hash',
+        'ts.coversNo': '✗ No — the token covers a different hash',
+        'ts.empty': 'Please paste a Base64 timestamp token',
+
+        'merkle.title': 'Merkle Tree Verification',
+        'merkle.desc': 'Verify that a hash is included in the Merkle tree and reconstruct the root.',
+        'merkle.json': 'Merkle JSON (from proof document):',
+        'merkle.hash': "Hash to verify (leave empty to verify the block's own leaf — ERE proof blocks carry one leaf each):",
+        'merkle.hashPlaceholder': '64 hex characters, or empty',
+        'merkle.button': 'Verify Merkle Proof',
+        'merkle.busy': 'Verifying...',
+        'merkle.ok': 'Verification Successful',
+        'merkle.ko': 'Verification Failed',
+        'merkle.calc': 'Calculated Root:',
+        'merkle.expected': 'Expected Root:',
+        'merkle.position': 'Position:',
+        'merkle.type': 'Type:',
+        'merkle.path': 'View Merkle Path (click to expand)',
+        'merkle.koText': 'The calculated Merkle root does not match the expected root. The file may have been tampered with.',
+        'merkle.empty': 'Please paste the Merkle JSON',
+        'merkle.leafOf': 'Leaf #{index} / {total} total leaves',
+
+        'ere.sig.title': 'Recipient Decision Signature (Ed25519)',
+        'ere.sig.desc': 'The recipient signed their decision (accept / refuse) with a private key that never left their device. Give the verifier the three elements printed in the proof document — the signed text, the public key and the signature — and it answers true or false. Nothing is recomputed or compared by hand.',
+        'ere.sig.where': '<strong>Where to find it in the proof document</strong> — section "Recipient decision": <em>Recipient public key (Ed25519, base64)</em>, <em>Ed25519 signature (base64)</em>, and the four-line block under <em>Exact message signed by the recipient</em>. Line breaks that the page inserted inside the key or the signature are ignored.',
+        'ere.sig.pk': 'Recipient public key (Ed25519, base64):',
+        'ere.sig.pkPlaceholder': '44 base64 characters, ends with =',
+        'ere.sig.sig': 'Signature (Ed25519, base64):',
+        'ere.sig.sigPlaceholder': '88 base64 characters, ends with ==',
+        'ere.sig.msg': 'Exact message signed by the recipient (paste the four-line block as printed):',
+        'ere.sig.or': 'Or build the message from its fields (the fields win when both are given):',
+        'ere.sig.decidedAt': 'decided_at (RFC 3339, UTC)',
+        'ere.sig.button': 'Verify Decision Signature',
+        'ere.sig.busy': 'Verifying...',
+        'ere.sig.bytes': 'Bytes verified (click to expand)',
+        'ere.sig.validTitle': '✓ Signature valid',
+        'ere.sig.validText': 'The holder of this public key signed exactly this decision, for exactly this delivery, at exactly this time. The decision cannot be repudiated nor replayed on another delivery.',
+        'ere.sig.invalidTitle': '✗ Signature does not match',
+        'ere.sig.invalidText': 'Either the message differs from what was signed (one character is enough — check the ere_id, the decision, the RFC 3339 date and that every line ends with a line feed), or the key or signature is not the one printed in the proof.',
+
+        'ere.ev.title': 'Event Evidence Hash',
+        'ere.ev.desc': 'Each event of a delivery is anchored as one <strong>leaf</strong> of a Merkle tree. The leaf is a SHA-256 — of the Email PDF for the content, of a short canonical text listing the event\'s facts for every other event. Three links, each checkable here: <strong>facts → leaf</strong> (this card rebuilds the leaf from the facts), <strong>leaf → root</strong> (the event\'s proof block lists the sibling hashes that lead from the leaf to the <em>Merkle root</em>), <strong>root → date and immutability</strong> (the TSA token of the same card covers that root, and the Stellar transaction carries it).',
+        'ere.ev.where': '<strong>Where to find it in the proof document</strong> — the facts are in the "Delivery" table (sender, recipient, subject, <em>Content digest</em>) and in the "Lifecycle" / "Recipient notification" sections (dates, <em>Postmark message ID</em>). Each "Event proof — …" card holds the event\'s <em>Merkle root</em>, its <em>Timestamp token</em> and its <em>Merkle proof (JSON)</em>; in that JSON, <code>leaf_hash</code> is the anchored leaf and <code>root_hash</code> the root. Line breaks the page inserted inside a hash or an identifier are ignored.',
+        'ere.ev.event': 'Event:',
+        'ere.ev.stage.deposit': 'Deposit (receipt)',
+        'ere.ev.stage.content': 'Content (Email PDF)',
+        'ere.ev.stage.emission': 'Dispatch to the sending service',
+        'ere.ev.stage.delivery': 'First presentation',
+        'ere.ev.stage.presentation': 'Later presentation (reminder)',
+        'ere.ev.stage.decision': 'Decision',
+        'ere.ev.stage.abort': 'Cancellation by the sender',
+        'ere.ev.stage.expiry': 'Expiry',
+        'ere.ev.block': 'Proof block of this event (optional — paste the "Merkle proof (JSON)" of the matching "Event proof" card; the tool then checks the recomputed leaf is in it and rebuilds the root):',
+        'ere.ev.button': 'Compute Leaf Hash',
+        'ere.ev.result': 'Leaf hash',
+        'ere.ev.canonical': 'Text that was hashed (click to expand)',
+        'ere.ev.toMerkle': 'Use in Merkle tab',
+        'ere.ev.hashFile': 'Hash the Email PDF file…',
+        'ere.ev.f.ere_id': 'ere_id (UUID)',
+        'ere.ev.f.sender_email': 'Sender email',
+        'ere.ev.f.recipient_email': 'Recipient email',
+        'ere.ev.f.subject': 'Subject (exactly as printed, may be empty)',
+        'ere.ev.f.content_hash': 'Content hash (SHA-256 of the Email PDF, hex)',
+        'ere.ev.f.content_hash_or_file': 'Content hash (SHA-256 of the Email PDF, hex) — or hash the file below',
+        'ere.ev.f.provider_message_id': 'Provider message ID',
+        'ere.ev.f.submitted_at': 'Hand-over time (RFC 3339, with fractional seconds)',
+        'ere.ev.f.delivered_at': 'Delivery time confirmed by the provider (RFC 3339)',
+        'ere.ev.f.presented_at': 'Delivery time confirmed by the provider (RFC 3339)',
+        'ere.ev.f.ordinal': 'Presentation number (2, 3, …)',
+        'ere.ev.f.signature': 'Recipient signature (Ed25519, base64)',
+        'ere.ev.f.received_at': 'Time the platform received the decision (RFC 3339)',
+        'ere.ev.f.sender_user_id': 'Sender user ID (UUID)',
+        'ere.ev.f.aborted_at': 'Cancellation time (RFC 3339)',
+        'ere.ev.f.expires_at': 'Expiry time (RFC 3339)',
+        'ere.ev.note.content': 'The content leaf is the SHA-256 of the Email PDF itself (the content proof you downloaded): there is no canonical text, the file digest is what was anchored.',
+        'ere.ev.note.emission': 'The hand-over instant is hashed with its fractional seconds: use the value from the proof\'s technical annex, not the rounded time of the lifecycle table.',
+        'ere.ev.okTitle': '✓ Facts → leaf → root: all three match',
+        'ere.ev.okText': 'The leaf rebuilt from the facts is exactly the leaf anchored in this block (leaf #{index} of {total}), and the block\'s sibling hashes lead from it to the Merkle root {root} — the value printed on the card. These facts were therefore part of the anchored batch. Last link: in the TimeStamp Decoder, paste the card\'s token with this root as the hash to cover; the token\'s date is the date of this event.',
+        'ere.ev.koTitle': '✗ The leaf rebuilt from these facts is not the one anchored in this block',
+        'ere.ev.koText': 'Anchored leaf (block\'s leaf_hash): {blockLeaf}. Rebuilt leaf: {leaf}. At least one fact differs from what the platform hashed — compare each value with the proof character by character (a trailing space in the subject, a wrong date or a date without its fractional seconds, another message id).',
+        'ere.ev.koNoLeaf': 'The leaf is not in this block.',
+        'ere.ev.badJson': '✗ Proof block is not valid JSON',
+
+        'footer': 'MailStone Verifier — All verifications are performed locally on your device.',
+        'about.title': 'About MailStone Verifier',
+        'about.what': 'What is MailStone Verifier?',
+        'about.whatText': 'MailStone Verifier is a standalone application that allows you to independently verify the proofs issued by MailStone: certified emails and registered electronic deliveries (ERE).',
+        'about.features': 'Features',
+        'about.f1': '<strong>Hash Calculation:</strong> Calculate SHA-256 cryptographic hashes of files (PDFs, attachments, JSON)',
+        'about.f2': '<strong>TimeStamp Decoder:</strong> Decode and verify RFC 3161 timestamp tokens from trusted TSA providers',
+        'about.f3': '<strong>Merkle Verification:</strong> Verify the inclusion of a hash in a Merkle tree and reconstruct the root',
+        'about.f4': '<strong>ERE Verification:</strong> Check the recipient\'s Ed25519 decision signature and recompute the evidence hash of each event of a Registered Electronic Delivery',
+        'about.privacy': 'Privacy & Security',
+        'about.privacyText': 'All verification is performed <strong>locally on your device</strong>. No data is sent to external servers.',
+        'error.prefix': 'Error: ',
+        'copy.failed': 'Failed to copy to clipboard',
+    },
+    fr: {
+        'topbar.version': 'v2.1',
+        'topbar.about': 'À propos',
+        'tab.hash': 'Calcul d\'empreinte',
+        'tab.timestamp': 'Décodage d\'horodatage',
+        'tab.merkle': 'Vérification Merkle',
+        'tab.ere': 'Vérification ERE',
+
+        'hash.title': 'Calculer une empreinte SHA-256',
+        'hash.desc': 'Choisissez un fichier (PDF Email, pièce jointe, JSON d\'accusé) pour calculer son empreinte SHA-256.',
+        'hash.drop': 'Cliquez pour choisir un fichier',
+        'hash.selected': 'Fichier choisi :',
+        'hash.button': 'Calculer l\'empreinte SHA-256',
+        'hash.busy': 'Calcul…',
+        'hash.result': 'Empreinte calculée',
+        'hash.copied': 'Empreinte copiée !',
+        'hash.copy': 'Copier',
+        'hash.nodrop': 'Le glisser-déposer n\'est pas pris en charge : cliquez pour choisir un fichier.',
+        'hash.selectError': 'Erreur à la sélection du fichier : ',
+
+        'ts.title': 'Décoder un horodatage RFC 3161',
+        'ts.desc': 'Collez le jeton d\'horodatage en base64 du dossier de preuve (« Jeton ASN.1 horodaté (base64) »).',
+        'ts.placeholder': 'Collez ici le jeton base64 (commence par MII…)',
+        'ts.expected': 'Empreinte que le jeton doit couvrir (facultatif — la « Racine Merkle » d\'une preuve d\'étape, ou l\'empreinte d\'un fichier) :',
+        'ts.expectedPlaceholder': '64 caractères hexadécimaux',
+        'ts.button': 'Décoder l\'horodatage',
+        'ts.busy': 'Décodage…',
+        'ts.result': 'Horodatage',
+        'ts.provider': 'Autorité :',
+        'ts.datetime': 'Date et heure :',
+        'ts.serial': 'Numéro de série :',
+        'ts.algo': 'Algorithme :',
+        'ts.hash': 'Empreinte horodatée :',
+        'ts.status': 'Statut :',
+        'ts.signature': 'Signature du jeton :',
+        'ts.signer': 'Signé par :',
+        'ts.issuer': 'Émis par :',
+        'ts.validity': 'Validité du certificat :',
+        'ts.covers': 'Couvre l\'empreinte indiquée :',
+        'ts.sigOk': '✓ Vérifiée avec le certificat embarqué dans le jeton',
+        'ts.sigKo': '✗ Non vérifiée',
+        'ts.coversYes': '✓ Oui — cet horodatage date cette empreinte',
+        'ts.coversNo': '✗ Non — le jeton couvre une autre empreinte',
+        'ts.empty': 'Collez un jeton d\'horodatage en base64',
+
+        'merkle.title': 'Vérification d\'arbre de Merkle',
+        'merkle.desc': 'Vérifier qu\'une empreinte fait partie de l\'arbre de Merkle et reconstruire la racine.',
+        'merkle.json': 'Preuve Merkle (JSON) du dossier de preuve :',
+        'merkle.hash': 'Empreinte à vérifier (vide = la feuille du bloc lui-même — les blocs d\'un dossier ERE n\'en ont qu\'une) :',
+        'merkle.hashPlaceholder': '64 caractères hexadécimaux, ou vide',
+        'merkle.button': 'Vérifier la preuve Merkle',
+        'merkle.busy': 'Vérification…',
+        'merkle.ok': 'Vérification réussie',
+        'merkle.ko': 'Vérification échouée',
+        'merkle.calc': 'Racine calculée :',
+        'merkle.expected': 'Racine attendue :',
+        'merkle.position': 'Position :',
+        'merkle.type': 'Type :',
+        'merkle.path': 'Voir le chemin de Merkle',
+        'merkle.koText': 'La racine calculée ne correspond pas à la racine attendue : le fichier ou la preuve a pu être altéré.',
+        'merkle.empty': 'Collez la preuve Merkle (JSON)',
+        'merkle.leafOf': 'Feuille n°{index} sur {total}',
+
+        'ere.sig.title': 'Signature de la décision du destinataire (Ed25519)',
+        'ere.sig.desc': 'Le destinataire a signé sa décision (accepter / refuser) avec une clé privée qui n\'a jamais quitté son appareil. Donnez au vérificateur les trois éléments imprimés dans le dossier — le texte signé, la clé publique et la signature — et il répond vrai ou faux. Rien n\'est recalculé ni comparé à la main.',
+        'ere.sig.where': '<strong>Où le trouver dans le Dossier de preuve</strong> — section « Décision du destinataire » : <em>Clé publique du destinataire (Ed25519, base64)</em>, <em>Signature Ed25519 (base64)</em>, et le bloc de quatre lignes sous <em>Message exact signé par le destinataire</em>. Les retours à la ligne que la page a insérés dans la clé ou la signature sont ignorés.',
+        'ere.sig.pk': 'Clé publique du destinataire (Ed25519, base64) :',
+        'ere.sig.pkPlaceholder': '44 caractères base64, se termine par =',
+        'ere.sig.sig': 'Signature (Ed25519, base64) :',
+        'ere.sig.sigPlaceholder': '88 caractères base64, se termine par ==',
+        'ere.sig.msg': 'Message exact signé par le destinataire (collez le bloc de quatre lignes tel qu\'imprimé) :',
+        'ere.sig.or': 'Ou reconstruisez le message depuis ses champs (les champs l\'emportent si les deux sont remplis) :',
+        'ere.sig.decidedAt': 'decided_at (RFC 3339, UTC)',
+        'ere.sig.button': 'Vérifier la signature',
+        'ere.sig.busy': 'Vérification…',
+        'ere.sig.bytes': 'Octets vérifiés',
+        'ere.sig.validTitle': '✓ Signature valide',
+        'ere.sig.validText': 'Le détenteur de cette clé publique a signé exactement cette décision, pour exactement cet envoi, à exactement cette date. La décision ne peut être ni répudiée, ni rejouée sur un autre courrier.',
+        'ere.sig.invalidTitle': '✗ La signature ne correspond pas',
+        'ere.sig.invalidText': 'Soit le message diffère de ce qui a été signé (un caractère suffit — vérifiez l\'ere_id, la décision, la date RFC 3339 et le saut de ligne en fin de chaque ligne), soit la clé ou la signature n\'est pas celle imprimée dans le dossier.',
+
+        'ere.ev.title': 'Empreinte d\'un événement',
+        'ere.ev.desc': 'Chaque événement d\'un envoi est ancré comme une <strong>feuille</strong> d\'un arbre de Merkle. La feuille est une empreinte SHA-256 — du PDF Email pour le contenu, d\'un court texte canonique listant les faits de l\'événement pour tous les autres. Trois maillons, chacun vérifiable ici : <strong>faits → feuille</strong> (cette carte recalcule la feuille à partir des faits), <strong>feuille → racine</strong> (la preuve Merkle de l\'événement liste les empreintes voisines qui mènent de la feuille à la <em>Racine Merkle</em>), <strong>racine → date et immuabilité</strong> (le jeton TSA de la même carte couvre cette racine, et la transaction Stellar la porte).',
+        'ere.ev.where': '<strong>Où le trouver dans le Dossier de preuve</strong> — les faits sont dans le tableau « Envoi » (expéditeur, destinataire, objet, <em>Empreinte du contenu</em>) et dans les sections « Chronologie » / « Notification au destinataire » (dates, <em>Identifiant de message Postmark</em>). Chaque carte « Preuve d\'étape — … » porte la <em>Racine Merkle</em> de l\'événement, son <em>Jeton ASN.1 horodaté</em> et sa <em>Preuve Merkle (JSON)</em> ; dans ce JSON, <code>leaf_hash</code> est la feuille ancrée et <code>root_hash</code> la racine. Les retours à la ligne que la page a insérés dans une empreinte ou un identifiant sont ignorés.',
+        'ere.ev.event': 'Événement :',
+        'ere.ev.stage.deposit': 'Dépôt (récépissé)',
+        'ere.ev.stage.content': 'Contenu (PDF Email)',
+        'ere.ev.stage.emission': 'Émission vers le service d\'envoi',
+        'ere.ev.stage.delivery': 'Première présentation',
+        'ere.ev.stage.presentation': 'Présentation suivante (relance)',
+        'ere.ev.stage.decision': 'Décision',
+        'ere.ev.stage.abort': 'Annulation par l\'expéditeur',
+        'ere.ev.stage.expiry': 'Expiration',
+        'ere.ev.block': 'Preuve Merkle de cet événement (facultatif — collez la « Preuve Merkle (JSON) » de la carte « Preuve d\'étape » correspondante ; l\'outil vérifie alors que la feuille recalculée y figure et reconstruit la racine) :',
+        'ere.ev.button': 'Calculer la feuille',
+        'ere.ev.result': 'Feuille (leaf_hash)',
+        'ere.ev.canonical': 'Texte haché',
+        'ere.ev.toMerkle': 'Utiliser dans l\'onglet Merkle',
+        'ere.ev.hashFile': 'Calculer l\'empreinte du PDF Email…',
+        'ere.ev.f.ere_id': 'ere_id (UUID)',
+        'ere.ev.f.sender_email': 'Adresse de l\'expéditeur',
+        'ere.ev.f.recipient_email': 'Adresse du destinataire',
+        'ere.ev.f.subject': 'Objet (exactement tel qu\'imprimé, peut être vide)',
+        'ere.ev.f.content_hash': 'Empreinte du contenu (SHA-256 du PDF Email, hex)',
+        'ere.ev.f.content_hash_or_file': 'Empreinte du contenu (SHA-256 du PDF Email, hex) — ou calculez-la ci-dessous',
+        'ere.ev.f.provider_message_id': 'Identifiant de message du service d\'envoi',
+        'ere.ev.f.submitted_at': 'Instant de remise au service d\'envoi (RFC 3339, fractions de seconde comprises)',
+        'ere.ev.f.delivered_at': 'Date de remise confirmée par le service d\'envoi (RFC 3339)',
+        'ere.ev.f.presented_at': 'Date de remise confirmée par le service d\'envoi (RFC 3339)',
+        'ere.ev.f.ordinal': 'Numéro de la présentation (2, 3, …)',
+        'ere.ev.f.signature': 'Signature du destinataire (Ed25519, base64)',
+        'ere.ev.f.received_at': 'Date de réception de la décision par la plateforme (RFC 3339)',
+        'ere.ev.f.sender_user_id': 'Identifiant utilisateur de l\'expéditeur (UUID)',
+        'ere.ev.f.aborted_at': 'Date d\'annulation (RFC 3339)',
+        'ere.ev.f.expires_at': 'Date d\'expiration (RFC 3339)',
+        'ere.ev.note.content': 'La feuille de contenu est l\'empreinte SHA-256 du PDF Email lui-même (la Preuve de contenu téléchargée) : pas de texte canonique, c\'est l\'empreinte du fichier qui a été ancrée.',
+        'ere.ev.note.emission': 'L\'instant de remise est haché avec ses fractions de seconde : prenez la valeur de l\'annexe technique du dossier, pas l\'heure arrondie du tableau de chronologie.',
+        'ere.ev.okTitle': '✓ Faits → feuille → racine : les trois concordent',
+        'ere.ev.okText': 'La feuille recalculée depuis les faits est exactement celle ancrée dans ce bloc (feuille n°{index} sur {total}), et les empreintes voisines du bloc mènent de cette feuille à la Racine Merkle {root} — la valeur imprimée sur la carte. Ces faits faisaient donc partie du lot ancré. Dernier maillon : dans l\'onglet d\'horodatage, collez le jeton de la carte avec cette racine comme empreinte à couvrir ; la date du jeton est la date de cet événement.',
+        'ere.ev.koTitle': '✗ La feuille recalculée depuis ces faits n\'est pas celle ancrée dans ce bloc',
+        'ere.ev.koText': 'Feuille ancrée (leaf_hash du bloc) : {blockLeaf}. Feuille recalculée : {leaf}. Au moins un fait diffère de ce que la plateforme a haché — comparez chaque valeur au dossier caractère par caractère (espace en fin d\'objet, date erronée ou sans ses fractions de seconde, autre identifiant de message).',
+        'ere.ev.koNoLeaf': 'La feuille ne figure pas dans ce bloc.',
+        'ere.ev.badJson': '✗ La preuve collée n\'est pas un JSON valide',
+
+        'footer': 'MailStone Verifier — Toutes les vérifications se font localement, sur votre appareil.',
+        'about.title': 'À propos de MailStone Verifier',
+        'about.what': 'Qu\'est-ce que MailStone Verifier ?',
+        'about.whatText': 'MailStone Verifier est une application autonome qui permet de vérifier, sans dépendre de MailStone, les preuves qu\'il délivre : mails certifiés et envois recommandés électroniques (ERE).',
+        'about.features': 'Fonctions',
+        'about.f1': '<strong>Calcul d\'empreinte :</strong> empreinte SHA-256 d\'un fichier (PDF, pièce jointe, JSON)',
+        'about.f2': '<strong>Décodage d\'horodatage :</strong> décodage et vérification des jetons RFC 3161 des autorités d\'horodatage',
+        'about.f3': '<strong>Vérification Merkle :</strong> inclusion d\'une empreinte dans un arbre de Merkle et reconstruction de la racine',
+        'about.f4': '<strong>Vérification ERE :</strong> signature Ed25519 de la décision du destinataire et recalcul de l\'empreinte de chaque événement d\'un envoi recommandé électronique',
+        'about.privacy': 'Confidentialité et sécurité',
+        'about.privacyText': 'Toutes les vérifications se font <strong>localement sur votre appareil</strong>. Aucune donnée n\'est envoyée à un serveur.',
+        'error.prefix': 'Erreur : ',
+        'copy.failed': 'Impossible de copier dans le presse-papiers',
+    },
+};
+
+const LANG_KEY = 'mailstone-verifier-lang';
+
+function detectLanguage() {
+    try {
+        const saved = localStorage.getItem(LANG_KEY);
+        if (saved && I18N[saved]) return saved;
+    } catch (e) { /* no storage */ }
+    const sys = (navigator.language || 'en').toLowerCase();
+    return sys.startsWith('fr') ? 'fr' : 'en';
+}
+
+let currentLang = detectLanguage();
+
+// t: the string for key in the current language, with {name} placeholders
+// filled from vars. Missing keys fall back to English, then to the key.
+function t(key, vars) {
+    let s = (I18N[currentLang] && I18N[currentLang][key]) || I18N.en[key] || key;
+    if (vars) {
+        Object.keys(vars).forEach((k) => { s = s.split(`{${k}}`).join(String(vars[k])); });
+    }
+    return s;
+}
+
+// applyLanguage rewrites every tagged element of the page.
+function applyLanguage(lang) {
+    if (!I18N[lang]) return;
+    currentLang = lang;
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* ignore */ }
+    document.documentElement.lang = lang;
+    document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t(el.dataset.i18nHtml); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => { el.placeholder = t(el.dataset.i18nPlaceholder); });
+    document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+    document.querySelectorAll('.lang-button').forEach((b) => { b.classList.toggle('active', b.dataset.lang === lang); });
+    document.dispatchEvent(new CustomEvent('languagechange', { detail: { lang } }));
+}

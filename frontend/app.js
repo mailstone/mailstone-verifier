@@ -1,3 +1,9 @@
+// Language: apply the saved/system language, then react to the switch.
+document.querySelectorAll('.lang-button').forEach((b) => {
+    b.addEventListener('click', () => applyLanguage(b.dataset.lang));
+});
+applyLanguage(currentLang);
+
 // Tab switching
 document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', () => {
@@ -69,7 +75,7 @@ hashDropZone.addEventListener('click', async () => {
             displayHashFile(filename);
         }
     } catch (error) {
-        hashError.textContent = `Error selecting file: ${error.message || error}`;
+        hashError.textContent = t('hash.selectError') + (error.message || error);
         hashError.style.display = 'block';
     }
 });
@@ -92,7 +98,7 @@ hashDropZone.addEventListener('drop', (e) => {
     hashDropZone.style.background = '#f7fafc';
 
     // Show error message for drag & drop
-    hashError.textContent = 'Drag & drop is not supported. Please click to browse files.';
+    hashError.textContent = t('hash.nodrop');
     hashError.style.display = 'block';
     setTimeout(() => {
         hashError.style.display = 'none';
@@ -111,7 +117,7 @@ hashCalculateBtn.addEventListener('click', async () => {
     if (!selectedFilePath) return;
 
     hashCalculateBtn.disabled = true;
-    hashCalculateBtn.textContent = 'Calculating...';
+    hashCalculateBtn.textContent = t('hash.busy');
     hashResult.style.display = 'none';
     hashError.style.display = 'none';
 
@@ -122,11 +128,11 @@ hashCalculateBtn.addEventListener('click', async () => {
         hashResult.style.display = 'block';
 
     } catch (error) {
-        hashError.textContent = `Error: ${error.message || error}`;
+        hashError.textContent = t('error.prefix') + (error.message || error);
         hashError.style.display = 'block';
     } finally {
         hashCalculateBtn.disabled = false;
-        hashCalculateBtn.textContent = 'Generate SHA-256 Hash';
+        hashCalculateBtn.textContent = t('hash.button');
     }
 });
 
@@ -141,7 +147,7 @@ hashCopyBtn.addEventListener('click', async () => {
             successMsg.style.display = 'none';
         }, 2000);
     } catch (error) {
-        alert('Failed to copy to clipboard');
+        alert(t('copy.failed'));
     }
 });
 
@@ -158,13 +164,13 @@ timestampDecodeBtn.addEventListener('click', async () => {
     const base64Token = timestampInput.value.trim();
 
     if (!base64Token) {
-        timestampError.textContent = 'Please paste a Base64 timestamp token';
+        timestampError.textContent = t('ts.empty');
         timestampError.style.display = 'block';
         return;
     }
 
     timestampDecodeBtn.disabled = true;
-    timestampDecodeBtn.textContent = 'Decoding...';
+    timestampDecodeBtn.textContent = t('ts.busy');
     timestampResult.style.display = 'none';
     timestampError.style.display = 'none';
 
@@ -184,7 +190,7 @@ timestampDecodeBtn.addEventListener('click', async () => {
         document.getElementById('ts-status').textContent = result.status;
 
         const sigCell = document.getElementById('ts-signature');
-        sigCell.textContent = result.signatureVerified ? '✓ Verified against the embedded certificate' : '✗ Not verified';
+        sigCell.textContent = result.signatureVerified ? t('ts.sigOk') : t('ts.sigKo');
         sigCell.className = result.signatureVerified ? 'verdict-ok' : 'verdict-ko';
         document.getElementById('ts-signer').textContent = result.signerSubject || '—';
         document.getElementById('ts-issuer').textContent = result.signerIssuer || '—';
@@ -193,7 +199,7 @@ timestampDecodeBtn.addEventListener('click', async () => {
         const coversCell = document.getElementById('ts-covers');
         if (result.coversHash) {
             coversRow.style.display = '';
-            coversCell.textContent = result.coversHash === 'yes' ? '✓ Yes — this timestamp dates that hash' : '✗ No — the token covers a different hash';
+            coversCell.textContent = result.coversHash === 'yes' ? t('ts.coversYes') : t('ts.coversNo');
             coversCell.className = result.coversHash === 'yes' ? 'verdict-ok' : 'verdict-ko';
         } else {
             coversRow.style.display = 'none';
@@ -203,11 +209,11 @@ timestampDecodeBtn.addEventListener('click', async () => {
         timestampResult.style.display = 'block';
 
     } catch (error) {
-        timestampError.textContent = `Error: ${error.message || error}`;
+        timestampError.textContent = t('error.prefix') + (error.message || error);
         timestampError.style.display = 'block';
     } finally {
         timestampDecodeBtn.disabled = false;
-        timestampDecodeBtn.textContent = 'Decode TimeStamp';
+        timestampDecodeBtn.textContent = t('ts.button');
     }
 });
 
@@ -228,13 +234,13 @@ merkleVerifyBtn.addEventListener('click', async () => {
     const hash = merkleHashInput.value.trim();
 
     if (!merkleJson) {
-        merkleError.textContent = 'Please paste the Merkle JSON';
+        merkleError.textContent = t('merkle.empty');
         merkleError.style.display = 'block';
         return;
     }
 
     merkleVerifyBtn.disabled = true;
-    merkleVerifyBtn.textContent = 'Verifying...';
+    merkleVerifyBtn.textContent = t('merkle.busy');
     merkleResult.style.display = 'none';
     merkleError.style.display = 'none';
 
@@ -252,7 +258,7 @@ merkleVerifyBtn.addEventListener('click', async () => {
             // Success case
             document.getElementById('merkle-calc-root').textContent = result.calculatedRoot;
             document.getElementById('merkle-exp-root').textContent = result.expectedRoot;
-            document.getElementById('merkle-position').textContent = `Leaf #${result.leafIndex} / ${result.totalLeaves} total leaves`;
+            document.getElementById('merkle-position').textContent = t('merkle.leafOf', { index: result.leafIndex, total: result.totalLeaves });
             document.getElementById('merkle-type').textContent = result.leafType.toUpperCase();
 
             // Display merkle path steps
@@ -273,11 +279,11 @@ merkleVerifyBtn.addEventListener('click', async () => {
         merkleResult.style.display = 'block';
 
     } catch (error) {
-        merkleError.textContent = `Error: ${error.message || error}`;
+        merkleError.textContent = t('error.prefix') + (error.message || error);
         merkleError.style.display = 'block';
     } finally {
         merkleVerifyBtn.disabled = false;
-        merkleVerifyBtn.textContent = 'Verify Merkle Proof';
+        merkleVerifyBtn.textContent = t('merkle.button');
     }
 });
 
@@ -294,7 +300,7 @@ ereVerifyBtn.addEventListener('click', async () => {
     ereSigResult.style.display = 'none';
     ereSigError.style.display = 'none';
     ereVerifyBtn.disabled = true;
-    ereVerifyBtn.textContent = 'Verifying...';
+    ereVerifyBtn.textContent = t('ere.sig.busy');
     try {
         const result = await window.go.main.App.VerifyEreDecision({
             publicKey: document.getElementById('ere-pk-input').value.trim(),
@@ -310,71 +316,72 @@ ereVerifyBtn.addEventListener('click', async () => {
         const title = document.getElementById('ere-sig-title');
         const text = document.getElementById('ere-sig-text');
         if (result.valid) {
-            title.textContent = '✓ Signature valid';
+            title.textContent = t('ere.sig.validTitle');
             title.className = 'verdict-ok';
-            text.textContent = 'The holder of this public key signed exactly this decision, for exactly this delivery, at exactly this time. The decision cannot be repudiated nor replayed on another delivery.';
+            text.textContent = t('ere.sig.validText');
         } else {
-            title.textContent = '✗ Signature does not match';
+            title.textContent = t('ere.sig.invalidTitle');
             title.className = 'verdict-ko';
-            text.textContent = 'Either the message differs from what was signed (one character is enough — check the ere_id, the decision, the RFC 3339 date and that every line ends with a line feed), or the key or signature is not the one printed in the proof.';
+            text.textContent = t('ere.sig.invalidText');
         }
         document.getElementById('ere-sig-bytes').textContent = result.message.replace(/\n/g, '\\n\n');
         ereSigResult.style.display = 'block';
     } catch (error) {
-        ereSigError.textContent = `Error: ${error.message || error}`;
+        ereSigError.textContent = t('error.prefix') + (error.message || error);
         ereSigError.style.display = 'block';
     } finally {
         ereVerifyBtn.disabled = false;
-        ereVerifyBtn.textContent = 'Verify Decision Signature';
+        ereVerifyBtn.textContent = t('ere.sig.button');
     }
 });
 
 // --- Event evidence hash ------------------------------------------------
 // The fields each event commits to, in the order the proof prints them.
 const EVIDENCE_FIELDS = {
+// [field name, label key] per event; labels are translated at render time.
     deposit: [
-        ['ere_id', 'ere_id (UUID)'],
-        ['sender_email', 'Sender email'],
-        ['recipient_email', 'Recipient email'],
-        ['subject', 'Subject (exactly as printed, may be empty)'],
-        ['content_hash', 'Content hash (SHA-256 of the Email PDF, hex)'],
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['sender_email', 'ere.ev.f.sender_email'],
+        ['recipient_email', 'ere.ev.f.recipient_email'],
+        ['subject', 'ere.ev.f.subject'],
+        ['content_hash', 'ere.ev.f.content_hash'],
     ],
     content: [
-        ['content_hash', 'Content hash (SHA-256 of the Email PDF, hex) — or hash the file below'],
+        ['content_hash', 'ere.ev.f.content_hash_or_file'],
     ],
     emission: [
-        ['ere_id', 'ere_id (UUID)'],
-        ['provider_message_id', 'Provider message ID'],
-        ['submitted_at', 'Hand-over time (RFC 3339, with fractional seconds)'],
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['provider_message_id', 'ere.ev.f.provider_message_id'],
+        ['submitted_at', 'ere.ev.f.submitted_at'],
     ],
     delivery: [
-        ['ere_id', 'ere_id (UUID)'],
-        ['delivered_at', 'Delivery time confirmed by the provider (RFC 3339)'],
-        ['provider_message_id', 'Provider message ID'],
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['delivered_at', 'ere.ev.f.delivered_at'],
+        ['provider_message_id', 'ere.ev.f.provider_message_id'],
     ],
     presentation: [
-        ['ere_id', 'ere_id (UUID)'],
-        ['ordinal', 'Presentation number (2, 3, …)'],
-        ['presented_at', 'Delivery time confirmed by the provider (RFC 3339)'],
-        ['provider_message_id', 'Provider message ID'],
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['ordinal', 'ere.ev.f.ordinal'],
+        ['presented_at', 'ere.ev.f.presented_at'],
+        ['provider_message_id', 'ere.ev.f.provider_message_id'],
     ],
     decision: [
-        ['signature', 'Recipient signature (Ed25519, base64)'],
-        ['received_at', 'Time the platform received the decision (RFC 3339)'],
+        ['signature', 'ere.ev.f.signature'],
+        ['received_at', 'ere.ev.f.received_at'],
     ],
     abort: [
-        ['ere_id', 'ere_id (UUID)'],
-        ['sender_user_id', 'Sender user ID (UUID)'],
-        ['aborted_at', 'Cancellation time (RFC 3339)'],
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['sender_user_id', 'ere.ev.f.sender_user_id'],
+        ['aborted_at', 'ere.ev.f.aborted_at'],
     ],
     expiry: [
-        ['ere_id', 'ere_id (UUID)'],
-        ['expires_at', 'Expiry time (RFC 3339)'],
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['expires_at', 'ere.ev.f.expires_at'],
     ],
 };
 const EVIDENCE_NOTES = {
-    content: 'The content leaf is the SHA-256 of the Email PDF itself (the "Preuve de contenu" you downloaded): there is no canonical text, the file digest is what was anchored.',
-    emission: 'The hand-over instant is hashed with its fractional seconds: use the value from the proof\'s technical annex, not the rounded time of the lifecycle table.',
+    content: 'ere.ev.note.content',
+    emission: 'ere.ev.note.emission',
 };
 
 const ereStageSelect = document.getElementById('ere-stage-select');
@@ -399,7 +406,7 @@ function renderEvidenceFields() {
             ? 'input-group wide' : 'input-group';
         const lab = document.createElement('label');
         lab.setAttribute('for', `ere-field-${name}`);
-        lab.textContent = label;
+        lab.textContent = t(label);
         const input = document.createElement('input');
         input.type = 'text';
         input.id = `ere-field-${name}`;
@@ -417,7 +424,7 @@ function renderEvidenceFields() {
         group.className = 'input-group';
         const btn = document.createElement('button');
         btn.className = 'btn btn-primary';
-        btn.textContent = 'Hash the Email PDF file…';
+        btn.textContent = t('ere.ev.hashFile');
         btn.addEventListener('click', async () => {
             try {
                 const filePath = await window.go.main.App.SelectFile();
@@ -427,7 +434,7 @@ function renderEvidenceFields() {
                 const field = document.getElementById('ere-field-content_hash');
                 if (field) field.value = hash;
             } catch (error) {
-                ereEvidenceError.textContent = `Error: ${error.message || error}`;
+                ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
                 ereEvidenceError.style.display = 'block';
             }
         });
@@ -437,11 +444,12 @@ function renderEvidenceFields() {
     if (EVIDENCE_NOTES[stage]) {
         const note = document.createElement('p');
         note.className = 'description';
-        note.textContent = EVIDENCE_NOTES[stage];
+        note.textContent = t(EVIDENCE_NOTES[stage]);
         ereEvidenceFields.appendChild(note);
     }
 }
 ereStageSelect.addEventListener('change', renderEvidenceFields);
+document.addEventListener('languagechange', renderEvidenceFields);
 renderEvidenceFields();
 
 // checkAgainstBlock: with the event's proof block pasted, confirm the
@@ -460,7 +468,7 @@ async function checkAgainstBlock(leafHash) {
         const parsed = JSON.parse(json);
         if (parsed.leaves && parsed.leaves.length === 1) blockLeaf = (parsed.leaves[0].leaf_hash || '').toLowerCase();
     } catch (e) {
-        title.textContent = '✗ Proof block is not valid JSON';
+        title.textContent = t('ere.ev.badJson');
         title.className = 'verdict-ko';
         text.textContent = e.message || String(e);
         box.style.display = 'block';
@@ -468,15 +476,15 @@ async function checkAgainstBlock(leafHash) {
     }
     const result = await window.go.main.App.VerifyMerkle({ merkleJson: json, hash: leafHash });
     if (result.success) {
-        title.textContent = '✓ Facts → leaf → root: all three match';
+        title.textContent = t('ere.ev.okTitle');
         title.className = 'verdict-ok';
-        text.textContent = `The leaf rebuilt from the facts is exactly the leaf anchored in this block (leaf #${result.leafIndex} of ${result.totalLeaves}), and the block's sibling hashes lead from it to the Racine Merkle ${result.calculatedRoot} — the value printed on the card. These facts were therefore part of the anchored batch. Last link: in the TimeStamp Decoder, paste the card's token with this root as the hash to cover; the token's date is the date of this event.`;
+        text.textContent = t('ere.ev.okText', { index: result.leafIndex, total: result.totalLeaves, root: result.calculatedRoot });
     } else {
-        title.textContent = '✗ The leaf rebuilt from these facts is not the one anchored in this block';
+        title.textContent = t('ere.ev.koTitle');
         title.className = 'verdict-ko';
         text.textContent = blockLeaf
-            ? `Anchored leaf (block's leaf_hash): ${blockLeaf}. Rebuilt leaf: ${leafHash}. At least one fact differs from what the platform hashed — compare each value with the proof character by character (a trailing space in the subject, a wrong date or a date without its fractional seconds, another message id).`
-            : (result.error || 'The leaf is not in this block.');
+            ? t('ere.ev.koText', { blockLeaf, leaf: leafHash })
+            : (result.error || t('ere.ev.koNoLeaf'));
     }
     box.style.display = 'block';
 }
@@ -499,7 +507,7 @@ ereEvidenceBtn.addEventListener('click', async () => {
         ereEvidenceResult.style.display = 'block';
         await checkAgainstBlock(result.leafHash);
     } catch (error) {
-        ereEvidenceError.textContent = `Error: ${error.message || error}`;
+        ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
         ereEvidenceError.style.display = 'block';
     } finally {
         ereEvidenceBtn.disabled = false;
@@ -513,7 +521,7 @@ document.getElementById('ere-evidence-copy-btn').addEventListener('click', async
         msg.style.display = 'block';
         setTimeout(() => { msg.style.display = 'none'; }, 2000);
     } catch (error) {
-        alert('Failed to copy to clipboard');
+        alert(t('copy.failed'));
     }
 });
 

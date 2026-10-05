@@ -7,12 +7,19 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend
 var assets embed.FS
+
+// Linux has no bundle to carry an icon: the window shows the one we hand
+// over at startup (and the .desktop entry points at build/linux/appicon.png).
+//
+//go:embed build/linux/appicon.png
+var linuxIcon []byte
 
 func main() {
 	// Create an instance of the app structure
@@ -47,6 +54,10 @@ func main() {
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			DisableWindowIcon:    false,
+		},
+		Linux: &linux.Options{
+			Icon:        linuxIcon,
+			ProgramName: "MailStone Verifier",
 		},
 	})
 

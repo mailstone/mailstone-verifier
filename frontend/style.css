@@ -648,3 +648,10 @@ select.input-text option {
     background-color: #ffffff;
 }
 
+/* ---- Language switch (topbar) ---- */
+.lang-switch { display: inline-flex; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 4px; overflow: hidden; }
+.lang-button { background: transparent; border: none; color: rgba(255, 255, 255, 0.82); font-size: 11px; font-weight: 600; padding: 3px 8px; cursor: pointer; letter-spacing: 0.04em; }
+.lang-button + .lang-button { border-left: 1px solid rgba(255, 255, 255, 0.35); }
+.lang-button:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+.lang-button.active { background: var(--orange); color: #ffffff; }
+

@@ -25,7 +25,7 @@
 - ✅ **ERE Decision Signature** - Ed25519 verification of the recipient's accept / refuse decision
 - ✅ **ERE Evidence Hashes** - Recompute the anchored leaf of each delivery event from the facts printed in the proof
 - ✅ **Standalone Binaries** - No installation required, runs on macOS, Linux, and Windows
-- ✅ **User-Friendly GUI** - Modern web-based interface powered by Wails
+- ✅ **User-Friendly GUI** - Web-based interface powered by Wails, in **English and French** (switch in the title bar; follows the system language by default)
 - ✅ **Open Source** - MIT licensed, transparent and auditable
 
 ---
@@ -260,8 +260,15 @@ mailstone-verifier/
 │   └── evidence/           # ERE event evidence-hash recomputation
 ├── frontend/
 │   ├── index.html          # UI with 4 tabs
-│   ├── style.css           # Modern styling
+│   ├── style.css           # Light MailStone theme
+│   ├── i18n.js             # English / French dictionary and language switch
 │   └── app.js              # Frontend logic
+├── build/
+│   ├── make_icons.py       # Generates the icons below from the MailStone mark
+│   ├── appicon.png         # Source icon (macOS / Windows bundles)
+│   ├── windows/icon.ico    # Windows executable icon
+│   ├── darwin/iconfile.icns# macOS bundle icon
+│   └── linux/appicon.png   # Linux window icon
 ├── go.mod
 ├── wails.json
 ├── README.md
