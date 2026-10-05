@@ -22,10 +22,14 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
+
+// uuidRe is the textual UUID the platform prints (lowercase hex, four dashes).
+var uuidRe = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$`)
 
 // Stage names, as the proof document labels its event cards.
 const (
@@ -89,6 +93,27 @@ func Compute(stage string, fields map[string]string) (*Result, error) {
 		}
 		return nil
 	}
+	// Identifiers and digests have a fixed shape: a value of the wrong length
+	// is a copy that lost a character, and hashing it would only produce a
+	// mismatch the reader cannot explain. Refuse it with the reason instead.
+	// UUIDs are hashed lowercase, as the platform prints them.
+	uuidOf := func(name string) (string, error) {
+		v := strings.ToLower(get(name))
+		if !uuidRe.MatchString(v) {
+			return "", fmt.Errorf("%s must be a UUID of 36 characters (8-4-4-4-12 hex digits), got %d: %q", name, len(v), v)
+		}
+		return v, nil
+	}
+	hexOf := func(name string) (string, error) {
+		v := strings.ToLower(get(name))
+		if len(v) != 64 {
+			return "", fmt.Errorf("%s must be 64 hex characters (a SHA-256), got %d", name, len(v))
+		}
+		if _, err := hex.DecodeString(v); err != nil {
+			return "", fmt.Errorf("%s is not hexadecimal", name)
+		}
+		return v, nil
+	}
 	var (
 		preimage  []byte
 		printable string
@@ -98,29 +123,45 @@ func Compute(stage string, fields map[string]string) (*Result, error) {
 		if err := need(FieldEREID, FieldSenderEmail, FieldRecipientEmail, FieldContentHash); err != nil {
 			return nil, err
 		}
-		printable = strings.Join([]string{"ere-deposit:v1", get(FieldEREID), get(FieldSenderEmail), get(FieldRecipientEmail), fields[FieldSubject], strings.ToLower(get(FieldContentHash))}, "\n")
+		id, err := uuidOf(FieldEREID)
+		if err != nil {
+			return nil, err
+		}
+		ch, err := hexOf(FieldContentHash)
+		if err != nil {
+			return nil, err
+		}
+		printable = strings.Join([]string{"ere-deposit:v1", id, get(FieldSenderEmail), get(FieldRecipientEmail), fields[FieldSubject], ch}, "\n")
 		preimage = []byte(printable)
 
 	case StageEmission:
 		if err := need(FieldEREID, FieldMessageID, FieldSubmittedAt); err != nil {
 			return nil, err
 		}
+		id, err := uuidOf(FieldEREID)
+		if err != nil {
+			return nil, err
+		}
 		at, err := parseTime(get(FieldSubmittedAt))
 		if err != nil {
 			return nil, err
 		}
-		printable = strings.Join([]string{"ere-emission:v1", get(FieldEREID), get(FieldMessageID), at.Format(time.RFC3339Nano)}, "\n")
+		printable = strings.Join([]string{"ere-emission:v1", id, get(FieldMessageID), at.Format(time.RFC3339Nano)}, "\n")
 		preimage = []byte(printable)
 
 	case StageDelivery:
 		if err := need(FieldEREID, FieldDeliveredAt, FieldMessageID); err != nil {
 			return nil, err
 		}
+		id, err := uuidOf(FieldEREID)
+		if err != nil {
+			return nil, err
+		}
 		at, err := parseTime(get(FieldDeliveredAt))
 		if err != nil {
 			return nil, err
 		}
-		printable = strings.Join([]string{"ere-delivery:v1", get(FieldEREID), at.Format(time.RFC3339Nano), get(FieldMessageID)}, "\n")
+		printable = strings.Join([]string{"ere-delivery:v1", id, at.Format(time.RFC3339Nano), get(FieldMessageID)}, "\n")
 		preimage = []byte(printable)
 
 	case StagePresentation:
@@ -131,11 +172,15 @@ func Compute(stage string, fields map[string]string) (*Result, error) {
 		if err != nil || n < 2 {
 			return nil, fmt.Errorf("ordinal must be an integer ≥ 2 (the first presentation is the 'delivery' stage)")
 		}
+		id, err := uuidOf(FieldEREID)
+		if err != nil {
+			return nil, err
+		}
 		at, err := parseTime(get(FieldPresentedAt))
 		if err != nil {
 			return nil, err
 		}
-		printable = strings.Join([]string{"ere-presentation:v1", get(FieldEREID), strconv.Itoa(n), at.Format(time.RFC3339Nano), get(FieldMessageID)}, "\n")
+		printable = strings.Join([]string{"ere-presentation:v1", id, strconv.Itoa(n), at.Format(time.RFC3339Nano), get(FieldMessageID)}, "\n")
 		preimage = []byte(printable)
 
 	case StageDecision:
@@ -161,22 +206,34 @@ func Compute(stage string, fields map[string]string) (*Result, error) {
 		if err := need(FieldEREID, FieldSenderUserID, FieldAbortedAt); err != nil {
 			return nil, err
 		}
+		id, err := uuidOf(FieldEREID)
+		if err != nil {
+			return nil, err
+		}
+		user, err := uuidOf(FieldSenderUserID)
+		if err != nil {
+			return nil, err
+		}
 		at, err := parseTime(get(FieldAbortedAt))
 		if err != nil {
 			return nil, err
 		}
-		printable = "ere/abort/v1\nere_id=" + get(FieldEREID) + "\nsender_user=" + get(FieldSenderUserID) + "\naborted_at=" + at.Format(time.RFC3339) + "\n"
+		printable = "ere/abort/v1\nere_id=" + id + "\nsender_user=" + user + "\naborted_at=" + at.Format(time.RFC3339) + "\n"
 		preimage = []byte(printable)
 
 	case StageExpiry:
 		if err := need(FieldEREID, FieldExpiresAt); err != nil {
 			return nil, err
 		}
+		id, err := uuidOf(FieldEREID)
+		if err != nil {
+			return nil, err
+		}
 		at, err := parseTime(get(FieldExpiresAt))
 		if err != nil {
 			return nil, err
 		}
-		printable = get(FieldEREID) + "|expired|" + at.Format(time.RFC3339)
+		printable = id + "|expired|" + at.Format(time.RFC3339)
 		preimage = []byte(printable)
 
 	case StageContent:
@@ -185,12 +242,9 @@ func Compute(stage string, fields map[string]string) (*Result, error) {
 		if err := need(FieldContentHash); err != nil {
 			return nil, err
 		}
-		h := strings.ToLower(get(FieldContentHash))
-		if len(h) != 64 {
-			return nil, fmt.Errorf("content_hash must be 64 hex characters (the SHA-256 of the Email PDF)")
-		}
-		if _, err := hex.DecodeString(h); err != nil {
-			return nil, fmt.Errorf("content_hash is not hexadecimal")
+		h, err := hexOf(FieldContentHash)
+		if err != nil {
+			return nil, err
 		}
 		return &Result{Stage: stage, LeafHash: h, Canonical: "<the SHA-256 of the Email PDF bytes, no canonical text>"}, nil
 

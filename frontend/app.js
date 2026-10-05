@@ -489,6 +489,26 @@ async function checkAgainstBlock(leafHash) {
     box.style.display = 'block';
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SHA256_RE = /^[0-9a-f]{64}$/i;
+function checkFieldShapes(fields) {
+    for (const name of ['ere_id', 'sender_user_id']) {
+        if (name in fields) {
+            const v = fields[name].replace(/\s+/g, '');
+            if (v && !UUID_RE.test(v)) {
+                return t('ere.ev.err.uuid', { field: t('ere.ev.f.' + name), len: v.length, value: v });
+            }
+        }
+    }
+    if ('content_hash' in fields) {
+        const v = fields.content_hash.replace(/\s+/g, '');
+        if (v && !SHA256_RE.test(v)) {
+            return t('ere.ev.err.hex', { field: t('ere.ev.f.content_hash'), len: v.length });
+        }
+    }
+    return '';
+}
+
 ereEvidenceBtn.addEventListener('click', async () => {
     ereEvidenceResult.style.display = 'none';
     ereEvidenceError.style.display = 'none';
@@ -496,6 +516,15 @@ ereEvidenceBtn.addEventListener('click', async () => {
     ereEvidenceFields.querySelectorAll('input[data-field]').forEach((input) => {
         fields[input.dataset.field] = input.value;
     });
+    // A UUID or a SHA-256 has a fixed length: a value of another length is a
+    // copy that lost or gained a character. Say so before hashing anything —
+    // a silent mismatch would send the reader hunting through every fact.
+    const shapeError = checkFieldShapes(fields);
+    if (shapeError) {
+        ereEvidenceError.textContent = shapeError;
+        ereEvidenceError.style.display = 'block';
+        return;
+    }
     ereEvidenceBtn.disabled = true;
     try {
         const result = await window.go.main.App.ComputeEreEvidenceHash({ stage: ereStageSelect.value, fields });

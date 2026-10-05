@@ -291,9 +291,9 @@ func extractTSAProvider(tsResp *ts.Timestamp) string {
 
 	if tsResp.Policy.String() != "" {
 		knownPolicies := map[string]string{
-			"1.3.6.1.4.1.6449.1.2.1.3.1":     "FreeTSA",
-			"1.3.6.1.4.1.57916.1.1.1.1.1":     "MailStone TimeStamp",
-			"0.4.0.2023.1.1":                   "Unataca",
+			"1.3.6.1.4.1.6449.1.2.1.3.1":  "FreeTSA",
+			"1.3.6.1.4.1.57916.1.1.1.1.1": "MailStone TimeStamp",
+			"0.4.0.2023.1.1":              "Unataca",
 		}
 		if provider, ok := knownPolicies[tsResp.Policy.String()]; ok {
 			return provider

@@ -1,6 +1,9 @@
 package evidence
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // Every vector below is a real leaf read from a MailStone platform
 // (merkle_proofs.leaf_hash) next to the facts the proof document prints for
@@ -124,5 +127,40 @@ func TestValuesCopiedFromThePageWithWraps(t *testing.T) {
 	})
 	if got != want {
 		t.Fatalf("deposit leaf = %s, want %s", got, want)
+	}
+}
+
+// A deposit of the staging platform (ERE 493da761…, 2026-09-30), read back
+// from ere_envelopes and merkle_proofs. The same facts with the ere_id
+// missing its last character — a copy that lost one character — must be
+// refused with the reason, not hashed into an unexplainable mismatch.
+func TestComputeDepositStagingAndTruncatedID(t *testing.T) {
+	fields := map[string]string{
+		FieldEREID:          "493da761-3473-4572-a9f4-d8f39d92b451",
+		FieldSenderEmail:    "jr.quiriconi@mailstone.fr",
+		FieldRecipientEmail: "jr@cyberialabs.io",
+		FieldSubject:        "ere 1",
+		FieldContentHash:    "ae0713e023a8d1c20e9902dab814ceb0e8b30603cb06c473b0229afd63c71a59",
+	}
+	res, err := Compute(StageDeposit, fields)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := "5dd81caa0b3e82e25a3a37a3cbbd35e1704e32fa7fc0820d143d5c6b38a0a893"; res.LeafHash != want {
+		t.Fatalf("deposit leaf = %s, want %s", res.LeafHash, want)
+	}
+	// Uppercase UUID, as a reader might retype it: hashed lowercase, same leaf.
+	fields[FieldEREID] = strings.ToUpper(fields[FieldEREID])
+	if res2, err := Compute(StageDeposit, fields); err != nil || res2.LeafHash != res.LeafHash {
+		t.Fatalf("uppercase ere_id: err=%v leaf=%v", err, res2)
+	}
+	fields[FieldEREID] = "493da761-3473-4572-a9f4-d8f39d92b45"
+	if _, err := Compute(StageDeposit, fields); err == nil || !strings.Contains(err.Error(), "36 characters") || !strings.Contains(err.Error(), "got 35") {
+		t.Fatalf("truncated ere_id must be refused with its length, got err=%v", err)
+	}
+	fields[FieldEREID] = "493da761-3473-4572-a9f4-d8f39d92b451"
+	fields[FieldContentHash] = fields[FieldContentHash][:63]
+	if _, err := Compute(StageDeposit, fields); err == nil || !strings.Contains(err.Error(), "64 hex") {
+		t.Fatalf("truncated content_hash must be refused, got err=%v", err)
 	}
 }

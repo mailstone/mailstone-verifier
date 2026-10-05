@@ -15,9 +15,9 @@ type MerkleProofData struct {
 		Provider string `json:"provider"`
 		TxHash   string `json:"tx_hash"`
 	} `json:"blockchain"`
-	LeafCount int         `json:"leaf_count"`
-	Leaves    []LeafData  `json:"leaves"`
-	RootHash  string      `json:"root_hash"`
+	LeafCount int        `json:"leaf_count"`
+	Leaves    []LeafData `json:"leaves"`
+	RootHash  string     `json:"root_hash"`
 }
 
 // LeafData represents a single leaf in the Merkle tree
@@ -32,9 +32,9 @@ type LeafData struct {
 
 // MerklePathNode represents one step in the Merkle path
 type MerklePathNode struct {
-	Level        int    `json:"level"`
-	Position     string `json:"position"`
-	SiblingHash  string `json:"sibling_hash"`
+	Level       int    `json:"level"`
+	Position    string `json:"position"`
+	SiblingHash string `json:"sibling_hash"`
 }
 
 // MerkleVerifyResult represents the result of Merkle verification
