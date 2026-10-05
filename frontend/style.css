@@ -614,6 +614,9 @@ footer {
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 0 16px;
 }
+/* Fields of one row stay aligned even when a label wraps: the label takes
+   the slack, the input sits on the row's baseline. */
+.field-grid .input-group { display: flex; flex-direction: column; justify-content: flex-end; }
 /* Verdicts: more specific than `.result-box h3`, whose green would
  * otherwise paint a ✗ as a success. */
 .verdict-ok, .result-box h3.verdict-ok { color: var(--success); }
