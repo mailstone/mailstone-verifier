@@ -346,8 +346,11 @@ const EVIDENCE_FIELDS = {
         ['subject', 'ere.ev.f.subject'],
         ['content_hash', 'ere.ev.f.content_hash'],
     ],
+    // Content: step 1 (the file) is rendered by renderEvidenceFields; these
+    // two are the file's digest and, optionally, the one printed in the proof.
     content: [
-        ['content_hash', 'ere.ev.f.content_hash_or_file'],
+        ['content_hash', 'ere.ev.f.content_hash_file'],
+        ['printed_content_hash', 'ere.ev.f.printed_content_hash'],
     ],
     emission: [
         ['ere_id', 'ere.ev.f.ere_id'],
@@ -380,9 +383,11 @@ const EVIDENCE_FIELDS = {
     ],
 };
 const EVIDENCE_NOTES = {
-    content: 'ere.ev.note.content',
     emission: 'ere.ev.note.emission',
 };
+// The file chosen for the content stage (name + digest), kept across
+// re-renders so a language switch does not lose it.
+let evidenceFile = null;
 
 const ereStageSelect = document.getElementById('ere-stage-select');
 const ereEvidenceFields = document.getElementById('ere-evidence-fields');
@@ -400,9 +405,48 @@ function renderEvidenceFields() {
     ereEvidenceFields.innerHTML = '';
     ereEvidenceResult.style.display = 'none';
     ereEvidenceError.style.display = 'none';
+    if (stage === 'content') {
+        // The leaf is the file's digest: the reader hashes the Email PDF
+        // here (step 1), compares it with the digest printed in the proof
+        // (step 2), then checks it against the content proof block (step 3).
+        const guide = document.createElement('div');
+        guide.className = 'where-to-find';
+        guide.innerHTML = t('ere.ev.content.guide');
+        ereEvidenceFields.appendChild(guide);
+        const group = document.createElement('div');
+        group.className = 'input-group wide';
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.textContent = t('ere.ev.hashFile');
+        const status = document.createElement('p');
+        status.className = 'description file-status';
+        status.id = 'ere-file-status';
+        const showStatus = () => {
+            status.textContent = evidenceFile ? t('ere.ev.fileStatus', { name: evidenceFile.name, hash: evidenceFile.hash }) : '';
+        };
+        btn.addEventListener('click', async () => {
+            try {
+                const filePath = await window.go.main.App.SelectFile();
+                if (!filePath) return;
+                const hash = await window.go.main.App.CalculateHash(filePath);
+                evidenceFile = { name: filePath.split(/[\\/]/).pop(), hash };
+                evidenceValues.content_hash = hash;
+                const field = document.getElementById('ere-field-content_hash');
+                if (field) field.value = hash;
+                showStatus();
+            } catch (error) {
+                ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
+                ereEvidenceError.style.display = 'block';
+            }
+        });
+        group.appendChild(btn);
+        group.appendChild(status);
+        ereEvidenceFields.appendChild(group);
+        showStatus();
+    }
     (EVIDENCE_FIELDS[stage] || []).forEach(([name, label]) => {
         const group = document.createElement('div');
-        group.className = ['content_hash', 'signature', 'ere_id', 'sender_user_id', 'provider_message_id'].includes(name)
+        group.className = ['content_hash', 'printed_content_hash', 'signature', 'ere_id', 'sender_user_id', 'provider_message_id'].includes(name)
             ? 'input-group wide' : 'input-group';
         const lab = document.createElement('label');
         lab.setAttribute('for', `ere-field-${name}`);
@@ -418,29 +462,6 @@ function renderEvidenceFields() {
         group.appendChild(input);
         ereEvidenceFields.appendChild(group);
     });
-    if (stage === 'content') {
-        // The leaf is the file's digest: offer to hash the Email PDF here.
-        const group = document.createElement('div');
-        group.className = 'input-group';
-        const btn = document.createElement('button');
-        btn.className = 'btn btn-primary';
-        btn.textContent = t('ere.ev.hashFile');
-        btn.addEventListener('click', async () => {
-            try {
-                const filePath = await window.go.main.App.SelectFile();
-                if (!filePath) return;
-                const hash = await window.go.main.App.CalculateHash(filePath);
-                evidenceValues.content_hash = hash;
-                const field = document.getElementById('ere-field-content_hash');
-                if (field) field.value = hash;
-            } catch (error) {
-                ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
-                ereEvidenceError.style.display = 'block';
-            }
-        });
-        group.appendChild(btn);
-        ereEvidenceFields.appendChild(group);
-    }
     if (EVIDENCE_NOTES[stage]) {
         const note = document.createElement('p');
         note.className = 'description';
@@ -454,6 +475,29 @@ renderEvidenceFields();
 
 // checkAgainstBlock: with the event's proof block pasted, confirm the
 // recomputed leaf is the block's leaf and that the root reconstructs.
+// showPrintedVerdict: the file's digest against the one printed in the
+// proof document (content stage only). Same digest = same document, byte
+// for byte; a different one is almost always the wrong file.
+function showPrintedVerdict(fileHash, printed) {
+    const box = document.getElementById('ere-evidence-printed');
+    const title = document.getElementById('ere-evidence-printed-title');
+    const text = document.getElementById('ere-evidence-printed-text');
+    if (ereStageSelect.value !== 'content' || !printed || !evidenceFile) {
+        box.style.display = 'none';
+        return;
+    }
+    if (fileHash === printed) {
+        title.textContent = t('ere.ev.printedOkTitle');
+        title.className = 'verdict-ok';
+        text.textContent = t('ere.ev.printedOkText', { name: evidenceFile.name });
+    } else {
+        title.textContent = t('ere.ev.printedKoTitle');
+        title.className = 'verdict-ko';
+        text.textContent = t('ere.ev.printedKoText', { name: evidenceFile.name, file: fileHash, printed });
+    }
+    box.style.display = 'block';
+}
+
 async function checkAgainstBlock(leafHash) {
     const box = document.getElementById('ere-evidence-block');
     const title = document.getElementById('ere-evidence-block-title');
@@ -500,10 +544,12 @@ function checkFieldShapes(fields) {
             }
         }
     }
-    if ('content_hash' in fields) {
-        const v = fields.content_hash.replace(/\s+/g, '');
-        if (v && !SHA256_RE.test(v)) {
-            return t('ere.ev.err.hex', { field: t('ere.ev.f.content_hash'), len: v.length });
+    for (const [name, label] of [['content_hash', 'ere.ev.f.content_hash'], ['printed_content_hash', 'ere.ev.f.printed_content_hash']]) {
+        if (name in fields) {
+            const v = fields[name].replace(/\s+/g, '');
+            if (v && !SHA256_RE.test(v)) {
+                return t('ere.ev.err.hex', { field: t(label), len: v.length });
+            }
         }
     }
     return '';
@@ -525,6 +571,13 @@ ereEvidenceBtn.addEventListener('click', async () => {
         ereEvidenceError.style.display = 'block';
         return;
     }
+    // The printed digest is compared here, not hashed: with no file chosen
+    // it is the digest to check against the block.
+    const printed = (fields.printed_content_hash || '').replace(/\s+/g, '').toLowerCase();
+    delete fields.printed_content_hash;
+    if (ereStageSelect.value === 'content' && !fields.content_hash.trim() && printed) {
+        fields.content_hash = printed;
+    }
     ereEvidenceBtn.disabled = true;
     try {
         const result = await window.go.main.App.ComputeEreEvidenceHash({ stage: ereStageSelect.value, fields });
@@ -533,6 +586,7 @@ ereEvidenceBtn.addEventListener('click', async () => {
         }
         document.getElementById('ere-evidence-hash').textContent = result.leafHash;
         document.getElementById('ere-evidence-canonical').textContent = result.canonical.replace(/\n/g, '\\n\n');
+        showPrintedVerdict(result.leafHash, printed);
         ereEvidenceResult.style.display = 'block';
         await checkAgainstBlock(result.leafHash);
     } catch (error) {
