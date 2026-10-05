@@ -428,8 +428,18 @@ function renderEvidenceFields() {
             try {
                 const filePath = await window.go.main.App.SelectFile();
                 if (!filePath) return;
+                const name = filePath.split(/[\\/]/).pop();
+                // The proof document is named like the Email PDF plus
+                // "-proof-N": hashing it is the classic wrong pick, and its
+                // digest can match nothing. Say so instead of hashing.
+                if (/-proof-\d+\.pdf$/i.test(name)) {
+                    ereEvidenceError.textContent = t('ere.ev.err.proofFile', { name });
+                    ereEvidenceError.style.display = 'block';
+                    return;
+                }
+                ereEvidenceError.style.display = 'none';
                 const hash = await window.go.main.App.CalculateHash(filePath);
-                evidenceFile = { name: filePath.split(/[\\/]/).pop(), hash };
+                evidenceFile = { name, hash };
                 evidenceValues.content_hash = hash;
                 const field = document.getElementById('ere-field-content_hash');
                 if (field) field.value = hash;
