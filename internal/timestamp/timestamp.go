@@ -2,6 +2,7 @@ package timestamp
 
 import (
 	"crypto"
+	"crypto/x509"
 	"encoding/asn1"
 	"encoding/hex"
 	"fmt"
@@ -21,7 +22,42 @@ type DecodeTimestampResult struct {
 	HashAlgo        string `json:"hashAlgo"`
 	TimestampedHash string `json:"timestampedHash"`
 	Status          string `json:"status"`
-	Error           string `json:"error,omitempty"`
+	// SignatureVerified is true when the token's PKCS#7 signature checks
+	// out against the TSA certificate embedded in the token. It says the
+	// token is intact and was issued by the holder of that certificate; it
+	// does NOT, by itself, say that certificate belongs to a trusted
+	// authority (see ChainNote).
+	SignatureVerified bool   `json:"signatureVerified"`
+	SignerSubject     string `json:"signerSubject"`
+	SignerIssuer      string `json:"signerIssuer"`
+	SignerValidFrom   string `json:"signerValidFrom"`
+	SignerValidTo     string `json:"signerValidTo"`
+	ChainNote         string `json:"chainNote"`
+	// CoversHash is set when the caller passed the hash the token is
+	// expected to cover (a Merkle root, a file hash): "yes", "no", or ""
+	// when nothing was asked.
+	CoversHash string `json:"coversHash"`
+	Error      string `json:"error,omitempty"`
+}
+
+// chainNote is printed with every decoded token: this tool checks the
+// token's own signature; trusting the signer is a separate, policy question.
+const chainNote = "Signature checked against the certificate embedded in the token. Whether that certificate is a trusted timestamping authority is for you to confirm (its subject and issuer are shown)."
+
+// Covers reports whether the token's message imprint equals hashHex. The
+// comparison is what links a timestamp to a batch: a token over a Merkle
+// root dates every leaf of that batch.
+func (r *DecodeTimestampResult) Covers(hashHex string) {
+	want := strings.ToLower(strings.TrimSpace(hashHex))
+	if want == "" {
+		r.CoversHash = ""
+		return
+	}
+	if strings.ToLower(r.TimestampedHash) == want {
+		r.CoversHash = "yes"
+	} else {
+		r.CoversHash = "no"
+	}
 }
 
 // CleanBase64 removes whitespace and newlines from base64 string
@@ -63,14 +99,34 @@ func buildResultFromDigitorus(tsResp *ts.Timestamp) *DecodeTimestampResult {
 		timestampedHash = hex.EncodeToString(tsResp.HashedMessage)
 	}
 
-	return &DecodeTimestampResult{
+	out := &DecodeTimestampResult{
 		Provider:        extractTSAProvider(tsResp),
 		DateTime:        tsResp.Time.Format("2006-01-02 15:04:05 MST"),
 		SerialNumber:    serialNumber,
 		HashAlgo:        getHashAlgoName(tsResp.HashAlgorithm),
 		TimestampedHash: timestampedHash,
 		Status:          "GRANTED",
+		// digitorus/timestamp verifies the PKCS#7 signature when the token
+		// embeds its certificate (Parse fails otherwise); a token without
+		// certificate is parsed but cannot be checked.
+		SignatureVerified: tsResp.AddTSACertificate,
+		ChainNote:         chainNote,
 	}
+	if !tsResp.AddTSACertificate {
+		out.ChainNote = "The token embeds no certificate: its signature could not be checked."
+	}
+	if len(tsResp.Certificates) > 0 {
+		fillSigner(out, tsResp.Certificates[0])
+	}
+	return out
+}
+
+// fillSigner copies the signer certificate's identity and validity window.
+func fillSigner(out *DecodeTimestampResult, cert *x509.Certificate) {
+	out.SignerSubject = cert.Subject.String()
+	out.SignerIssuer = cert.Issuer.String()
+	out.SignerValidFrom = cert.NotBefore.UTC().Format("2006-01-02")
+	out.SignerValidTo = cert.NotAfter.UTC().Format("2006-01-02")
 }
 
 // parseWithSmallstep parses a TSA response using smallstep/pkcs7 (supports RSASSA-PSS)
@@ -141,14 +197,28 @@ func parseWithSmallstep(tsrBytes []byte) (*DecodeTimestampResult, error) {
 		}
 	}
 
-	return &DecodeTimestampResult{
+	out := &DecodeTimestampResult{
 		Provider:        provider,
 		DateTime:        dateTime,
 		SerialNumber:    serialNumber,
 		HashAlgo:        hashAlgo,
 		TimestampedHash: timestampedHash,
 		Status:          "GRANTED",
-	}, nil
+		ChainNote:       chainNote,
+	}
+	// This path used to decode without checking anything: an RSASSA-PSS
+	// token with a forged signature decoded as cleanly as a genuine one.
+	if len(p7.Certificates) == 0 {
+		out.ChainNote = "The token embeds no certificate: its signature could not be checked."
+	} else if verr := p7.Verify(); verr != nil {
+		out.ChainNote = "Signature check FAILED: " + verr.Error()
+	} else {
+		out.SignatureVerified = true
+	}
+	if len(p7.Certificates) > 0 {
+		fillSigner(out, p7.Certificates[0])
+	}
+	return out, nil
 }
 
 // tstInfo is the RFC 3161 TSTInfo structure

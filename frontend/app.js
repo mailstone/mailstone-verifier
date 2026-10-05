@@ -169,7 +169,8 @@ timestampDecodeBtn.addEventListener('click', async () => {
     timestampError.style.display = 'none';
 
     try {
-        const result = await window.go.main.App.DecodeTimestamp(base64Token);
+        const expectedHash = document.getElementById('timestamp-expected-hash').value.trim();
+        const result = await window.go.main.App.DecodeTimestamp(base64Token, expectedHash);
 
         if (result.error) {
             throw new Error(result.error);
@@ -181,6 +182,23 @@ timestampDecodeBtn.addEventListener('click', async () => {
         document.getElementById('ts-hashalgo').textContent = result.hashAlgo;
         document.getElementById('ts-hash').textContent = result.timestampedHash;
         document.getElementById('ts-status').textContent = result.status;
+
+        const sigCell = document.getElementById('ts-signature');
+        sigCell.textContent = result.signatureVerified ? '✓ Verified against the embedded certificate' : '✗ Not verified';
+        sigCell.className = result.signatureVerified ? 'verdict-ok' : 'verdict-ko';
+        document.getElementById('ts-signer').textContent = result.signerSubject || '—';
+        document.getElementById('ts-issuer').textContent = result.signerIssuer || '—';
+        document.getElementById('ts-validity').textContent = result.signerValidFrom ? `${result.signerValidFrom} → ${result.signerValidTo}` : '—';
+        const coversRow = document.getElementById('ts-covers-row');
+        const coversCell = document.getElementById('ts-covers');
+        if (result.coversHash) {
+            coversRow.style.display = '';
+            coversCell.textContent = result.coversHash === 'yes' ? '✓ Yes — this timestamp dates that hash' : '✗ No — the token covers a different hash';
+            coversCell.className = result.coversHash === 'yes' ? 'verdict-ok' : 'verdict-ko';
+        } else {
+            coversRow.style.display = 'none';
+        }
+        document.getElementById('ts-chain-note').textContent = result.chainNote || '';
 
         timestampResult.style.display = 'block';
 
@@ -211,12 +229,6 @@ merkleVerifyBtn.addEventListener('click', async () => {
 
     if (!merkleJson) {
         merkleError.textContent = 'Please paste the Merkle JSON';
-        merkleError.style.display = 'block';
-        return;
-    }
-
-    if (!hash) {
-        merkleError.textContent = 'Please enter the hash to verify';
         merkleError.style.display = 'block';
         return;
     }
@@ -267,4 +279,249 @@ merkleVerifyBtn.addEventListener('click', async () => {
         merkleVerifyBtn.disabled = false;
         merkleVerifyBtn.textContent = 'Verify Merkle Proof';
     }
+});
+
+// ========================================
+// TAB 4: ERE Verification
+// ========================================
+
+// --- Recipient decision signature -------------------------------------
+const ereVerifyBtn = document.getElementById('ere-verify-btn');
+const ereSigResult = document.getElementById('ere-sig-result');
+const ereSigError = document.getElementById('ere-sig-error');
+
+ereVerifyBtn.addEventListener('click', async () => {
+    ereSigResult.style.display = 'none';
+    ereSigError.style.display = 'none';
+    ereVerifyBtn.disabled = true;
+    ereVerifyBtn.textContent = 'Verifying...';
+    try {
+        const result = await window.go.main.App.VerifyEreDecision({
+            publicKey: document.getElementById('ere-pk-input').value.trim(),
+            signature: document.getElementById('ere-sig-input').value.trim(),
+            message: document.getElementById('ere-msg-input').value,
+            ereId: document.getElementById('ere-id-input').value.trim(),
+            decision: document.getElementById('ere-decision-input').value,
+            decidedAt: document.getElementById('ere-decided-input').value.trim(),
+        });
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        const title = document.getElementById('ere-sig-title');
+        const text = document.getElementById('ere-sig-text');
+        if (result.valid) {
+            title.textContent = '✓ Signature valid';
+            title.className = 'verdict-ok';
+            text.textContent = 'The holder of this public key signed exactly this decision, for exactly this delivery, at exactly this time. The decision cannot be repudiated nor replayed on another delivery.';
+        } else {
+            title.textContent = '✗ Signature does not match';
+            title.className = 'verdict-ko';
+            text.textContent = 'Either the message differs from what was signed (one character is enough — check the ere_id, the decision, the RFC 3339 date and that every line ends with a line feed), or the key or signature is not the one printed in the proof.';
+        }
+        document.getElementById('ere-sig-bytes').textContent = result.message.replace(/\n/g, '\\n\n');
+        ereSigResult.style.display = 'block';
+    } catch (error) {
+        ereSigError.textContent = `Error: ${error.message || error}`;
+        ereSigError.style.display = 'block';
+    } finally {
+        ereVerifyBtn.disabled = false;
+        ereVerifyBtn.textContent = 'Verify Decision Signature';
+    }
+});
+
+// --- Event evidence hash ------------------------------------------------
+// The fields each event commits to, in the order the proof prints them.
+const EVIDENCE_FIELDS = {
+    deposit: [
+        ['ere_id', 'ere_id (UUID)'],
+        ['sender_email', 'Sender email'],
+        ['recipient_email', 'Recipient email'],
+        ['subject', 'Subject (exactly as printed, may be empty)'],
+        ['content_hash', 'Content hash (SHA-256 of the Email PDF, hex)'],
+    ],
+    content: [
+        ['content_hash', 'Content hash (SHA-256 of the Email PDF, hex) — or hash the file below'],
+    ],
+    emission: [
+        ['ere_id', 'ere_id (UUID)'],
+        ['provider_message_id', 'Provider message ID'],
+        ['submitted_at', 'Hand-over time (RFC 3339, with fractional seconds)'],
+    ],
+    delivery: [
+        ['ere_id', 'ere_id (UUID)'],
+        ['delivered_at', 'Delivery time confirmed by the provider (RFC 3339)'],
+        ['provider_message_id', 'Provider message ID'],
+    ],
+    presentation: [
+        ['ere_id', 'ere_id (UUID)'],
+        ['ordinal', 'Presentation number (2, 3, …)'],
+        ['presented_at', 'Delivery time confirmed by the provider (RFC 3339)'],
+        ['provider_message_id', 'Provider message ID'],
+    ],
+    decision: [
+        ['signature', 'Recipient signature (Ed25519, base64)'],
+        ['received_at', 'Time the platform received the decision (RFC 3339)'],
+    ],
+    abort: [
+        ['ere_id', 'ere_id (UUID)'],
+        ['sender_user_id', 'Sender user ID (UUID)'],
+        ['aborted_at', 'Cancellation time (RFC 3339)'],
+    ],
+    expiry: [
+        ['ere_id', 'ere_id (UUID)'],
+        ['expires_at', 'Expiry time (RFC 3339)'],
+    ],
+};
+const EVIDENCE_NOTES = {
+    content: 'The content leaf is the SHA-256 of the Email PDF itself (the "Preuve de contenu" you downloaded): there is no canonical text, the file digest is what was anchored.',
+    emission: 'The hand-over instant is hashed with its fractional seconds: use the value from the proof\'s technical annex, not the rounded time of the lifecycle table.',
+};
+
+const ereStageSelect = document.getElementById('ere-stage-select');
+const ereEvidenceFields = document.getElementById('ere-evidence-fields');
+const ereEvidenceBtn = document.getElementById('ere-evidence-btn');
+const ereEvidenceResult = document.getElementById('ere-evidence-result');
+const ereEvidenceError = document.getElementById('ere-evidence-error');
+const ereEvidenceJson = document.getElementById('ere-evidence-json');
+
+// Values typed so far, by field name. ere_id, provider_message_id, the
+// content hash… are shared between events: switching the event keeps them.
+const evidenceValues = {};
+
+function renderEvidenceFields() {
+    const stage = ereStageSelect.value;
+    ereEvidenceFields.innerHTML = '';
+    ereEvidenceResult.style.display = 'none';
+    ereEvidenceError.style.display = 'none';
+    (EVIDENCE_FIELDS[stage] || []).forEach(([name, label]) => {
+        const group = document.createElement('div');
+        group.className = ['content_hash', 'signature', 'ere_id', 'sender_user_id', 'provider_message_id'].includes(name)
+            ? 'input-group wide' : 'input-group';
+        const lab = document.createElement('label');
+        lab.setAttribute('for', `ere-field-${name}`);
+        lab.textContent = label;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = `ere-field-${name}`;
+        input.className = 'input-text';
+        input.dataset.field = name;
+        input.value = evidenceValues[name] || '';
+        input.addEventListener('input', () => { evidenceValues[name] = input.value; });
+        group.appendChild(lab);
+        group.appendChild(input);
+        ereEvidenceFields.appendChild(group);
+    });
+    if (stage === 'content') {
+        // The leaf is the file's digest: offer to hash the Email PDF here.
+        const group = document.createElement('div');
+        group.className = 'input-group';
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.textContent = 'Hash the Email PDF file…';
+        btn.addEventListener('click', async () => {
+            try {
+                const filePath = await window.go.main.App.SelectFile();
+                if (!filePath) return;
+                const hash = await window.go.main.App.CalculateHash(filePath);
+                evidenceValues.content_hash = hash;
+                const field = document.getElementById('ere-field-content_hash');
+                if (field) field.value = hash;
+            } catch (error) {
+                ereEvidenceError.textContent = `Error: ${error.message || error}`;
+                ereEvidenceError.style.display = 'block';
+            }
+        });
+        group.appendChild(btn);
+        ereEvidenceFields.appendChild(group);
+    }
+    if (EVIDENCE_NOTES[stage]) {
+        const note = document.createElement('p');
+        note.className = 'description';
+        note.textContent = EVIDENCE_NOTES[stage];
+        ereEvidenceFields.appendChild(note);
+    }
+}
+ereStageSelect.addEventListener('change', renderEvidenceFields);
+renderEvidenceFields();
+
+// checkAgainstBlock: with the event's proof block pasted, confirm the
+// recomputed leaf is the block's leaf and that the root reconstructs.
+async function checkAgainstBlock(leafHash) {
+    const box = document.getElementById('ere-evidence-block');
+    const title = document.getElementById('ere-evidence-block-title');
+    const text = document.getElementById('ere-evidence-block-text');
+    const json = ereEvidenceJson.value.trim();
+    if (!json) {
+        box.style.display = 'none';
+        return;
+    }
+    let blockLeaf = '';
+    try {
+        const parsed = JSON.parse(json);
+        if (parsed.leaves && parsed.leaves.length === 1) blockLeaf = (parsed.leaves[0].leaf_hash || '').toLowerCase();
+    } catch (e) {
+        title.textContent = '✗ Proof block is not valid JSON';
+        title.className = 'verdict-ko';
+        text.textContent = e.message || String(e);
+        box.style.display = 'block';
+        return;
+    }
+    const result = await window.go.main.App.VerifyMerkle({ merkleJson: json, hash: leafHash });
+    if (result.success) {
+        title.textContent = '✓ Facts → leaf → root: all three match';
+        title.className = 'verdict-ok';
+        text.textContent = `The leaf rebuilt from the facts is exactly the leaf anchored in this block (leaf #${result.leafIndex} of ${result.totalLeaves}), and the block's sibling hashes lead from it to the Racine Merkle ${result.calculatedRoot} — the value printed on the card. These facts were therefore part of the anchored batch. Last link: in the TimeStamp Decoder, paste the card's token with this root as the hash to cover; the token's date is the date of this event.`;
+    } else {
+        title.textContent = '✗ The leaf rebuilt from these facts is not the one anchored in this block';
+        title.className = 'verdict-ko';
+        text.textContent = blockLeaf
+            ? `Anchored leaf (block's leaf_hash): ${blockLeaf}. Rebuilt leaf: ${leafHash}. At least one fact differs from what the platform hashed — compare each value with the proof character by character (a trailing space in the subject, a wrong date or a date without its fractional seconds, another message id).`
+            : (result.error || 'The leaf is not in this block.');
+    }
+    box.style.display = 'block';
+}
+
+ereEvidenceBtn.addEventListener('click', async () => {
+    ereEvidenceResult.style.display = 'none';
+    ereEvidenceError.style.display = 'none';
+    const fields = {};
+    ereEvidenceFields.querySelectorAll('input[data-field]').forEach((input) => {
+        fields[input.dataset.field] = input.value;
+    });
+    ereEvidenceBtn.disabled = true;
+    try {
+        const result = await window.go.main.App.ComputeEreEvidenceHash({ stage: ereStageSelect.value, fields });
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        document.getElementById('ere-evidence-hash').textContent = result.leafHash;
+        document.getElementById('ere-evidence-canonical').textContent = result.canonical.replace(/\n/g, '\\n\n');
+        ereEvidenceResult.style.display = 'block';
+        await checkAgainstBlock(result.leafHash);
+    } catch (error) {
+        ereEvidenceError.textContent = `Error: ${error.message || error}`;
+        ereEvidenceError.style.display = 'block';
+    } finally {
+        ereEvidenceBtn.disabled = false;
+    }
+});
+
+document.getElementById('ere-evidence-copy-btn').addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(document.getElementById('ere-evidence-hash').textContent);
+        const msg = ereEvidenceResult.querySelector('.success-message');
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 2000);
+    } catch (error) {
+        alert('Failed to copy to clipboard');
+    }
+});
+
+// Hand the leaf to the Merkle tab: the reader pastes that event's proof
+// block there and verifies.
+document.getElementById('ere-evidence-to-merkle-btn').addEventListener('click', () => {
+    merkleHashInput.value = document.getElementById('ere-evidence-hash').textContent;
+    if (ereEvidenceJson.value.trim()) merkleJsonInput.value = ereEvidenceJson.value.trim();
+    document.querySelector('.tab-button[data-tab="merkle"]').click();
+    merkleJsonInput.focus();
 });

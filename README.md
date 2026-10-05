@@ -4,23 +4,26 @@
 
 # MailStone Verifier
 
-![MailStone Verifier](https://img.shields.io/badge/version-2.0.0-blue)
+![MailStone Verifier](https://img.shields.io/badge/version-2.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Go Version](https://img.shields.io/badge/go-1.24+-00ADD8?logo=go)
 
-**MailStone Verifier** is an open-source desktop application for verifying blockchain-anchored emails and attachments. It provides three essential tools:
+**MailStone Verifier** is an open-source desktop application for verifying the proofs MailStone issues: certified emails (*mail opposable*) and registered electronic deliveries (*Envoi Recommandé Électronique*, ERE). It provides four tools:
 
 1. **Hash Calculator** - Calculate SHA-256 hashes of files (Email PDFs, attachments, ACK JSON)
-2. **TimeStamp Decoder** - Decode RFC 3161 TSA timestamps from proof documents
-3. **Merkle Verifier** - Verify that a file is included in a Merkle tree and reconstruct the root
+2. **TimeStamp Decoder** - Decode and verify RFC 3161 TSA timestamp tokens, and check which hash they cover
+3. **Merkle Verifier** - Verify that a hash is included in a Merkle tree and reconstruct the root
+4. **ERE Verifier** - Check the recipient's Ed25519 decision signature and recompute the evidence hash of every event of a delivery
 
 ---
 
 ## Features
 
 - ✅ **SHA-256 Hash Calculation** - Fast and secure hashing of any file
-- ✅ **RFC 3161 Timestamp Decoding** - Extract provider, date, serial number, and hash algorithm
-- ✅ **Merkle Tree Verification** - Reconstruct Merkle root and verify file inclusion
+- ✅ **RFC 3161 Timestamp Verification** - Signature checked against the embedded TSA certificate; provider, date, serial number, hash algorithm, signer identity; optional check that the token covers a given hash (a Merkle root, a file)
+- ✅ **Merkle Tree Verification** - Reconstruct Merkle root and verify leaf inclusion (single-leaf ERE blocks and multi-leaf V2 blocks)
+- ✅ **ERE Decision Signature** - Ed25519 verification of the recipient's accept / refuse decision
+- ✅ **ERE Evidence Hashes** - Recompute the anchored leaf of each delivery event from the facts printed in the proof
 - ✅ **Standalone Binaries** - No installation required, runs on macOS, Linux, and Windows
 - ✅ **User-Friendly GUI** - Modern web-based interface powered by Wails
 - ✅ **Open Source** - MIT licensed, transparent and auditable
@@ -162,8 +165,48 @@ Binaries will be in the `build/bin/` directory.
 - ✅ **Success:** Calculated root matches expected root (file is authentic)
 - ❌ **Failure:** Roots don't match (file may be tampered with)
 - **Position:** Leaf index in the tree (e.g., Leaf #2 / 3 total leaves)
-- **Type:** Entity type (EMAIL, ATTACHMENT, ACK)
+- **Type:** Entity type (EMAIL, ATTACHMENT, ACK, ERE, ERE_ATTACHMENT, ERE_PRESENTATION)
+
+The hash field may be left empty: the block's own leaf is then verified, which is how the single-leaf blocks of an ERE proof are meant to be used.
 - **Merkle Path:** Step-by-step reconstruction (click to expand)
+
+---
+
+### 4. ERE Verification
+
+**Purpose:** Verify a *Dossier de preuve* of a Registered Electronic Delivery beyond its Merkle blocks.
+
+**Recipient decision signature**
+
+The recipient accepted or refused the delivery by signing a four-line text with an Ed25519 private key that never left their device. The proof prints the public key, the signature and the exact text.
+
+1. Open the **ERE Verification** tab
+2. Paste the public key and the signature from the "Décision du destinataire" section
+3. Paste the four-line block exactly as printed (or fill in `ere_id`, `decision`, `decided_at`)
+4. Click **Verify Decision Signature**
+
+Ed25519 is a signature scheme, not a hash: the tool gives the message, the public key and the signature to the algorithm and reports **true or false**. True means the holder of that key signed exactly this decision, for exactly this delivery, at exactly this time; a single different byte gives false. The signed `decided_at` is RFC 3339 UTC (`2026-10-05T09:36:36Z`), and every line, the last included, ends with a line feed — the tool normalises a block pasted without the final one.
+
+**Event evidence hash**
+
+Every event of a delivery is anchored as its own Merkle leaf. The leaf is the SHA-256 of a short canonical text committing to the event's facts:
+
+| Event | Hashed text (lines joined by `\n`) |
+|---|---|
+| Deposit (receipt) | `ere-deposit:v1`, ere_id, sender email, recipient email, subject, content hash (hex) |
+| Content | the SHA-256 of the Email PDF itself (use the Hash tab) |
+| Dispatch | `ere-emission:v1`, ere_id, provider message id, hand-over time (RFC 3339, fractional seconds) |
+| First presentation | `ere-delivery:v1`, ere_id, delivery time (RFC 3339), provider message id |
+| Later presentation | `ere-presentation:v1`, ere_id, ordinal, delivery time, provider message id |
+| Decision | raw signature bytes, then `\nreceived_at=` + platform receipt time (RFC 3339) |
+| Cancellation | `ere/abort/v1\nere_id=…\nsender_user=…\naborted_at=…\n` |
+| Expiry | ere_id + `|expired|` + expiry time (RFC 3339) |
+
+1. Pick the event and enter the facts printed in the proof (values are kept when you switch events). For the content event, hash the Email PDF file directly from the card.
+2. Optionally paste the event's proof block (the "Preuve Merkle (JSON)" of the matching "Preuve d'étape" card) and click **Compute Leaf Hash**: the tool rebuilds the leaf, checks it is the block's leaf (`leaf_hash`) and reconstructs the anchored root. Without the block, **Use in Merkle tab** carries the hash over.
+3. In the **TimeStamp Decoder**, paste the event's TSA token with the block's `root_hash` as the hash to cover: the token's date is then the opposable date of that event
+
+Times are hashed in UTC; a time pasted with a zone is converted.
 
 ---
 
@@ -208,13 +251,15 @@ The Merkle JSON should follow this format (from MailStone proof documents):
 ```
 mailstone-verifier/
 ├── main.go                 # Wails entry point
-├── app.go                  # Backend API (CalculateHash, DecodeTimestamp, VerifyMerkle)
+├── app.go                  # Backend API (CalculateHash, DecodeTimestamp, VerifyMerkle, VerifyEreDecision, ComputeEreEvidenceHash)
 ├── internal/
 │   ├── hasher/             # SHA-256 hash calculation
-│   ├── timestamp/          # RFC 3161 timestamp decoder
-│   └── merkle/             # Merkle tree verification
+│   ├── timestamp/          # RFC 3161 timestamp decoder + signature check
+│   ├── merkle/             # Merkle tree verification
+│   ├── signature/          # Ed25519 recipient-decision verification (ERE)
+│   └── evidence/           # ERE event evidence-hash recomputation
 ├── frontend/
-│   ├── index.html          # UI with 3 tabs
+│   ├── index.html          # UI with 4 tabs
 │   ├── style.css           # Modern styling
 │   └── app.js              # Frontend logic
 ├── go.mod

@@ -16,7 +16,7 @@
                 <span class="topbar-subtitle">Verifier</span>
             </div>
             <div class="topbar-right">
-                <span class="topbar-version">v2.0</span>
+                <span class="topbar-version">v2.1</span>
                 <button class="topbar-info-btn" id="info-btn" title="About">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -40,6 +40,10 @@
                 <button class="tab-button" data-tab="merkle">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
                     Merkle Verification
+                </button>
+                <button class="tab-button" data-tab="ere">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    ERE Verification
                 </button>
             </div>
 
@@ -94,6 +98,11 @@
                         rows="8"
                     ></textarea>
 
+                    <div class="input-group">
+                        <label for="timestamp-expected-hash">Hash the token should cover (optional — a Merkle root from a proof block, or a file hash):</label>
+                        <input type="text" id="timestamp-expected-hash" class="input-text" placeholder="64 hex characters">
+                    </div>
+
                     <button class="btn btn-primary" id="timestamp-decode-btn">Decode TimeStamp</button>
 
                     <div id="timestamp-result" class="result-box" style="display: none;">
@@ -105,7 +114,13 @@
                             <tr><td><strong>Hash Algorithm:</strong></td><td id="ts-hashalgo"></td></tr>
                             <tr><td><strong>Timestamped Hash:</strong></td><td id="ts-hash" class="mono"></td></tr>
                             <tr><td><strong>Status:</strong></td><td id="ts-status"></td></tr>
+                            <tr><td><strong>Token signature:</strong></td><td id="ts-signature"></td></tr>
+                            <tr><td><strong>Signed by:</strong></td><td id="ts-signer" class="mono"></td></tr>
+                            <tr><td><strong>Issued by:</strong></td><td id="ts-issuer" class="mono"></td></tr>
+                            <tr><td><strong>Certificate validity:</strong></td><td id="ts-validity"></td></tr>
+                            <tr id="ts-covers-row"><td><strong>Covers the given hash:</strong></td><td id="ts-covers"></td></tr>
                         </table>
+                        <p class="description" id="ts-chain-note"></p>
                     </div>
 
                     <div id="timestamp-error" class="error-box" style="display: none;"></div>
@@ -129,12 +144,12 @@
                     </div>
 
                     <div class="input-group">
-                        <label for="merkle-hash-input">Hash to verify:</label>
+                        <label for="merkle-hash-input">Hash to verify (leave empty to verify the block's own leaf — ERE proof blocks carry one leaf each):</label>
                         <input
                             type="text"
                             id="merkle-hash-input"
                             class="input-text"
-                            placeholder="Enter hash (64 hex characters)"
+                            placeholder="64 hex characters, or empty"
                         >
                     </div>
 
@@ -169,6 +184,96 @@
                 </div>
             </div>
 
+            <!-- Tab 4: ERE Verification -->
+            <div class="tab-content" id="ere-tab">
+                <div class="card">
+                    <h2>Recipient Decision Signature (Ed25519)</h2>
+                    <p class="description">The recipient signed their decision (accept / refuse) with a private key that never left their device. Give the verifier the three elements printed in the proof document — the signed text, the public key and the signature — and it answers true or false. Nothing is recomputed or compared by hand.</p>
+                    <div class="where-to-find"><strong>Where to find it in the Dossier de preuve</strong> — section « Décision du destinataire » : <em>Clé publique du destinataire (Ed25519, base64)</em>, <em>Signature Ed25519 (base64)</em>, and the four-line block under <em>Message exact signé par le destinataire</em>. Line breaks that the page inserted inside the key or the signature are ignored.</div>
+
+                    <div class="input-group">
+                        <label for="ere-pk-input">Recipient public key (Ed25519, base64):</label>
+                        <input type="text" id="ere-pk-input" class="input-text" placeholder="44 base64 characters, ends with =">
+                    </div>
+                    <div class="input-group">
+                        <label for="ere-sig-input">Signature (Ed25519, base64):</label>
+                        <input type="text" id="ere-sig-input" class="input-text" placeholder="88 base64 characters, ends with ==">
+                    </div>
+                    <div class="input-group">
+                        <label for="ere-msg-input">Exact message signed by the recipient (paste the four-line block as printed):</label>
+                        <textarea id="ere-msg-input" class="input-textarea" rows="5" placeholder="ere/decision/v1&#10;ere_id=…&#10;decision=accepted&#10;decided_at=2026-10-05T09:36:36Z"></textarea>
+                    </div>
+                    <p class="description">Or build the message from its fields (the fields win when both are given):</p>
+                    <div class="field-grid">
+                        <div class="input-group"><label for="ere-id-input">ere_id</label><input type="text" id="ere-id-input" class="input-text" placeholder="UUID"></div>
+                        <div class="input-group"><label for="ere-decision-input">decision</label>
+                            <select id="ere-decision-input" class="input-text"><option value="">—</option><option value="accepted">accepted</option><option value="refused">refused</option></select></div>
+                        <div class="input-group"><label for="ere-decided-input">decided_at (RFC 3339, UTC)</label><input type="text" id="ere-decided-input" class="input-text" placeholder="2026-10-05T09:36:36Z"></div>
+                    </div>
+
+                    <button class="btn btn-primary" id="ere-verify-btn">Verify Decision Signature</button>
+
+                    <div id="ere-sig-result" class="result-box" style="display: none;">
+                        <h3 id="ere-sig-title"></h3>
+                        <p id="ere-sig-text" class="description"></p>
+                        <details class="merkle-path">
+                            <summary>Bytes verified (click to expand)</summary>
+                            <div class="path-steps" id="ere-sig-bytes"></div>
+                        </details>
+                    </div>
+                    <div id="ere-sig-error" class="error-box" style="display: none;"></div>
+                </div>
+
+                <div class="card">
+                    <h2>Event Evidence Hash</h2>
+                    <p class="description">Each event of a delivery is anchored as one <strong>leaf</strong> of a Merkle tree. The leaf is a SHA-256 — of the Email PDF for the content, of a short canonical text listing the event's facts for every other event. Three links, each checkable here: <strong>facts → leaf</strong> (this card rebuilds the leaf from the facts), <strong>leaf → root</strong> (the event's proof block lists the sibling hashes that lead from the leaf to the <em>Racine Merkle</em>), <strong>root → date and immutability</strong> (the TSA token of the same card covers that root, and the Stellar transaction carries it).</p>
+                    <div class="where-to-find"><strong>Where to find it in the Dossier de preuve</strong> — the facts are in the « Envoi » table (expéditeur, destinataire, objet, <em>Empreinte du contenu</em>) and in the « Chronologie » / « Notification au destinataire » sections (dates, <em>Identifiant de message Postmark</em>). Each « Preuve d'étape — … » card holds the event's <em>Racine Merkle</em>, its <em>Jeton ASN.1 horodaté</em> and its <em>Preuve Merkle (JSON)</em>; in that JSON, <code>leaf_hash</code> is the anchored leaf and <code>root_hash</code> the root. Line breaks the page inserted inside a hash or an identifier are ignored.</div>
+
+                    <div class="input-group">
+                        <label for="ere-stage-select">Event:</label>
+                        <select id="ere-stage-select" class="input-text">
+                            <option value="deposit">Deposit (receipt)</option>
+                            <option value="content">Content (Email PDF)</option>
+                            <option value="emission">Dispatch to the sending service</option>
+                            <option value="delivery">First presentation</option>
+                            <option value="presentation">Later presentation (reminder)</option>
+                            <option value="decision">Decision</option>
+                            <option value="abort">Cancellation by the sender</option>
+                            <option value="expiry">Expiry</option>
+                        </select>
+                    </div>
+                    <div class="field-grid" id="ere-evidence-fields"></div>
+
+                    <div class="input-group">
+                        <label for="ere-evidence-json">Proof block of this event (optional — paste the "Preuve Merkle (JSON)" of the matching "Preuve d'étape" card; the tool then checks the recomputed leaf is in it and rebuilds the root):</label>
+                        <textarea id="ere-evidence-json" class="input-textarea" rows="6" placeholder='{ "root_hash": "...", "leaf_count": 7, "leaves": [ { "leaf_hash": "...", "merkle_path": [ ... ] } ], ... }'></textarea>
+                    </div>
+
+                    <button class="btn btn-primary" id="ere-evidence-btn">Compute Leaf Hash</button>
+
+                    <div id="ere-evidence-result" class="result-box" style="display: none;">
+                        <h3>Leaf hash</h3>
+                        <div class="hash-display">
+                            <code id="ere-evidence-hash"></code>
+                            <button class="btn-copy" id="ere-evidence-copy-btn" title="Copy to clipboard">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </button>
+                        </div>
+                        <p class="success-message">Hash copied to clipboard!</p>
+                        <details class="merkle-path">
+                            <summary>Text that was hashed (click to expand)</summary>
+                            <div class="path-steps" id="ere-evidence-canonical"></div>
+                        </details>
+                        <div id="ere-evidence-block" style="display: none;">
+                            <h3 id="ere-evidence-block-title"></h3>
+                            <p id="ere-evidence-block-text" class="description"></p>
+                        </div>
+                        <button class="btn btn-primary" id="ere-evidence-to-merkle-btn">Use in Merkle tab</button>
+                    </div>
+                    <div id="ere-evidence-error" class="error-box" style="display: none;"></div>
+                </div>
+            </div>
+
             <footer>
                 <p>MailStone Verifier &mdash; All verifications are performed locally on your device.</p>
             </footer>
@@ -197,6 +302,7 @@
                     <li><strong>Hash Calculation:</strong> Calculate SHA-256 cryptographic hashes of files (PDFs, attachments, JSON)</li>
                     <li><strong>TimeStamp Decoder:</strong> Decode and verify RFC 3161 timestamp tokens from trusted TSA providers</li>
                     <li><strong>Merkle Verification:</strong> Verify the inclusion of a hash in a Merkle tree and reconstruct the root</li>
+                    <li><strong>ERE Verification:</strong> Check the recipient's Ed25519 decision signature and recompute the evidence hash of each event of a Registered Electronic Delivery</li>
                 </ul>
 
                 <h3>Privacy & Security</h3>
