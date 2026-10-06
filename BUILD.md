@@ -98,7 +98,7 @@ Produces:
 - `mailstone-verifier-linux-amd64` (Linux x64)
 - `mailstone-verifier-windows-amd64.exe` (Windows x64)
 
-Cross-compilation requires the relevant platform toolchains. If a target fails locally, build it on the matching host (or in a Docker container) instead.
+Windows cross-compiles from Linux (`wails build -platform windows/amd64`) — keep `github.com/wailsapp/go-webview2` at the version Wails' own `go.mod` requires, otherwise the Windows frontend fails to compile. macOS cannot be cross-compiled: build it on a Mac, or let `.github/workflows/release.yml` do it on a tag. Cross-compilation otherwise requires the relevant platform toolchains. If a target fails locally, build it on the matching host (or in a Docker container) instead.
 
 ### Manual `wails build`
 

@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
   - **Event evidence hash** — recompute the Merkle leaf of each event of a delivery (deposit receipt, dispatch, first and later presentations, decision, cancellation, expiry) from the facts printed in the proof, with the platform's exact canonical formats, then verify it in the Merkle tab against that event's proof block.
 - **TimeStamp Decoder**: optional "hash the token should cover" field — reports whether the token's imprint equals a Merkle root or a file hash, which is what links a timestamp to a batch.
 - **TimeStamp Decoder**: signer certificate (subject, issuer, validity window) and an explicit note that the chain of trust is the reader's to confirm.
+- GitHub Actions workflow `release.yml`: on a `v*` tag, builds Linux, Windows (cross-compiled) and both macOS targets on their own runners, and attaches the binaries plus `SHA256SUMS.txt` to the release.
 - Real-data regression tests: a decision signed on the MailStone platform, platform-anchored leaves for four event types, and a genuine root timestamp token (verified, covered root, tamper detection).
 - **French and English interface** — FR/EN switch in the title bar; the language follows the system locale on first start and is remembered. Every label, hint, verdict and error is translated, and the "where to find it" boxes name the sections exactly as the French Dossier de preuve prints them.
 - **Session report** — every verification (file hash, timestamp, Merkle, ERE decision, ERE event) is added to a journal; "Export" in the title bar saves the whole session as a text report in the interface language or as JSON with stable keys and exact values. The header states the tool version, platform and export time, and that the report is produced by the reader's own copy of the tool.
@@ -29,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Fixed
 
 - **TimeStamp Decoder** no longer reports a token as decoded without checking it: the RSASSA-PSS path (MailStone TimeStamp) now verifies the PKCS#7 signature against the embedded certificate, like the standard path always did, and says so. A token with no embedded certificate is flagged as unverifiable.
+- **Windows build** — `go.mod` pinned `go-webview2` v1.0.22 while Wails v2.10.2 compiles against v1.0.19: every Windows build failed with a type mismatch inside Wails' own frontend. The dependency now follows Wails; a cross-build from Linux produces the `.exe` again.
 - Dropdown lists were unreadable on Linux (WebKitGTK does not inherit the field colours): they are now styled explicitly.
 - A key, signature or hash pasted from the PDF with a line break inside it is accepted: internal whitespace is ignored.
 - Switching the event in the evidence card no longer erases the values already typed.
