@@ -126,6 +126,8 @@ hashCalculateBtn.addEventListener('click', async () => {
 
         hashValue.textContent = hash;
         hashResult.style.display = 'block';
+        const size = await window.go.main.App.FileSize(selectedFilePath).catch(() => 0);
+        markAdded(hashResult, journalAdd({ operation: 'file_hash', file: { name: hashFilename.textContent, size }, sha256: hash }));
 
     } catch (error) {
         hashError.textContent = t('error.prefix') + (error.message || error);
@@ -207,6 +209,19 @@ timestampDecodeBtn.addEventListener('click', async () => {
         document.getElementById('ts-chain-note').textContent = result.chainNote || '';
 
         timestampResult.style.display = 'block';
+        markAdded(timestampResult, journalAdd({
+            operation: 'timestamp',
+            token: base64Token.replace(/\s+/g, ''),
+            expected_hash: expectedHash || null,
+            result: {
+                provider: result.provider, date_time: result.dateTime, serial_number: result.serialNumber,
+                hash_algo: result.hashAlgo, timestamped_hash: result.timestampedHash, status: result.status,
+                signature_verified: result.signatureVerified, signer_subject: result.signerSubject || '',
+                signer_issuer: result.signerIssuer || '', signer_valid_from: result.signerValidFrom || '',
+                signer_valid_to: result.signerValidTo || '', covers_hash: result.coversHash || null,
+                chain_note: result.chainNote || '',
+            },
+        }));
 
     } catch (error) {
         timestampError.textContent = t('error.prefix') + (error.message || error);
@@ -277,6 +292,13 @@ merkleVerifyBtn.addEventListener('click', async () => {
         }
 
         merkleResult.style.display = 'block';
+        let block = merkleJson;
+        try { block = JSON.parse(merkleJson); } catch (e) { /* keep the raw text */ }
+        markAdded(merkleResult, journalAdd({
+            operation: 'merkle', hash: hash || null, block,
+            result: { success: result.success, calculated_root: result.calculatedRoot, expected_root: result.expectedRoot,
+                leaf_index: result.leafIndex, total_leaves: result.totalLeaves, leaf_type: result.leafType || '' },
+        }));
 
     } catch (error) {
         merkleError.textContent = t('error.prefix') + (error.message || error);
@@ -326,6 +348,13 @@ ereVerifyBtn.addEventListener('click', async () => {
         }
         document.getElementById('ere-sig-bytes').textContent = result.message.replace(/\n/g, '\\n\n');
         ereSigResult.style.display = 'block';
+        markAdded(ereSigResult, journalAdd({
+            operation: 'ere_decision',
+            public_key: result.publicKey || document.getElementById('ere-pk-input').value.replace(/\s+/g, ''),
+            signature: document.getElementById('ere-sig-input').value.replace(/\s+/g, ''),
+            message: result.message,
+            result: { valid: result.valid },
+        }));
     } catch (error) {
         ereSigError.textContent = t('error.prefix') + (error.message || error);
         ereSigError.style.display = 'block';
@@ -524,7 +553,7 @@ async function checkAgainstBlock(leafHash) {
     const json = ereEvidenceJson.value.trim();
     if (!json) {
         box.style.display = 'none';
-        return;
+        return null;
     }
     let blockLeaf = '';
     try {
@@ -535,7 +564,7 @@ async function checkAgainstBlock(leafHash) {
         title.className = 'verdict-ko';
         text.textContent = e.message || String(e);
         box.style.display = 'block';
-        return;
+        return { verdict: false, error: t('ere.ev.badJson') };
     }
     const result = await window.go.main.App.VerifyMerkle({ merkleJson: json, hash: leafHash });
     if (result.success) {
@@ -550,6 +579,10 @@ async function checkAgainstBlock(leafHash) {
             : (result.error || t('ere.ev.koNoLeaf'));
     }
     box.style.display = 'block';
+    return {
+        verdict: !!result.success, leaf_index: result.leafIndex, total_leaves: result.totalLeaves,
+        root_hash: result.calculatedRoot, expected_root: result.expectedRoot, block_leaf: blockLeaf || null,
+    };
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -607,7 +640,19 @@ ereEvidenceBtn.addEventListener('click', async () => {
         document.getElementById('ere-evidence-canonical').textContent = result.canonical.replace(/\n/g, '\\n\n');
         showPrintedVerdict(result.leafHash, printed);
         ereEvidenceResult.style.display = 'block';
-        await checkAgainstBlock(result.leafHash);
+        const block = await checkAgainstBlock(result.leafHash);
+        const isContent = ereStageSelect.value === 'content';
+        markAdded(ereEvidenceResult, journalAdd({
+            operation: 'ere_evidence',
+            event: ereStageSelect.value,
+            inputs: fields,
+            file: isContent && evidenceFile ? { name: evidenceFile.name, hash: evidenceFile.hash } : null,
+            canonical: isContent ? null : result.canonical,
+            leaf_hash: result.leafHash,
+            printed_hash: isContent && printed ? printed : null,
+            printed_matches: isContent && printed && evidenceFile ? result.leafHash === printed : null,
+            proof_block: block,
+        }));
     } catch (error) {
         ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
         ereEvidenceError.style.display = 'block';

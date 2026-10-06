@@ -26,6 +26,7 @@
 - ✅ **ERE Evidence Hashes** - Recompute the anchored leaf of each delivery event from the facts printed in the proof
 - ✅ **Standalone Binaries** - No installation required, runs on macOS, Linux, and Windows
 - ✅ **User-Friendly GUI** - Web-based interface powered by Wails, in **English and French** (switch in the title bar; follows the system language by default)
+- ✅ **Session report** - Every verification is journaled; export the whole session as a text report or as JSON from the title bar
 - ✅ **Open Source** - MIT licensed, transparent and auditable
 
 ---
@@ -262,6 +263,7 @@ mailstone-verifier/
 │   ├── index.html          # UI with 4 tabs
 │   ├── style.css           # Light MailStone theme
 │   ├── i18n.js             # English / French dictionary and language switch
+│   ├── report.js           # Session journal and report export (text / JSON)
 │   └── app.js              # Frontend logic
 ├── build/
 │   ├── make_icons.py       # Generates the icons below from the MailStone mark

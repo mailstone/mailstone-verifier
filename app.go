@@ -10,6 +10,9 @@ import (
 	"mailstone-verifier/internal/merkle"
 	"mailstone-verifier/internal/signature"
 	"mailstone-verifier/internal/timestamp"
+	"os"
+	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"time"
 
@@ -178,4 +181,84 @@ func (a *App) ComputeEreEvidenceHash(req EreEvidenceRequest) (*evidence.Result, 
 		return &evidence.Result{Stage: req.Stage, Error: err.Error()}, nil
 	}
 	return res, nil
+}
+
+// appVersion is printed in the report header (keep in step with wails.json).
+const appVersion = "2.1.0"
+
+// AppInfo heads an exported report.
+type AppInfo struct {
+	Name    string `json:"name"`
+	Version string `json:"version"`
+	OS      string `json:"os"`
+	Arch    string `json:"arch"`
+}
+
+// GetAppInfo returns the tool's name, version and platform.
+func (a *App) GetAppInfo() AppInfo {
+	return AppInfo{Name: "MailStone Verifier", Version: appVersion, OS: goruntime.GOOS, Arch: goruntime.GOARCH}
+}
+
+// FileSize is the size of a file, for the report (0 when unknown).
+func (a *App) FileSize(path string) (int64, error) {
+	st, err := os.Stat(path)
+	if err != nil {
+		return 0, err
+	}
+	return st.Size(), nil
+}
+
+// ExportRequest is a report to save: the page renders it (text in the
+// interface language, or JSON), Go only asks where and writes it.
+type ExportRequest struct {
+	Format      string `json:"format"` // "txt" | "json"
+	Content     string `json:"content"`
+	DefaultName string `json:"defaultName"`
+}
+
+// ExportReport opens the save dialog and writes the report. Returns the
+// path written, or "" when the reader cancelled.
+func (a *App) ExportReport(req ExportRequest) (string, error) {
+	format := req.Format
+	if format != "json" {
+		format = "txt"
+	}
+	filter := runtime.FileFilter{DisplayName: "Text report (*.txt)", Pattern: "*.txt"}
+	if format == "json" {
+		filter = runtime.FileFilter{DisplayName: "JSON data (*.json)", Pattern: "*.json"}
+	}
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Save the verification report",
+		DefaultFilename: req.DefaultName,
+		Filters:         []runtime.FileFilter{filter},
+	})
+	if err != nil {
+		return "", fmt.Errorf("save dialog: %w", err)
+	}
+	if path == "" {
+		return "", nil
+	}
+	if filepath.Ext(path) == "" {
+		path += "." + format
+	}
+	if err := os.WriteFile(path, []byte(req.Content), 0o644); err != nil {
+		return "", fmt.Errorf("write report: %w", err)
+	}
+	return path, nil
+}
+
+// ConfirmDialog asks a yes/no question with the platform's native dialog.
+func (a *App) ConfirmDialog(title, message string) (bool, error) {
+	res, err := runtime.MessageDialog(a.ctx, runtime.MessageDialogOptions{
+		Type:          runtime.QuestionDialog,
+		Title:         title,
+		Message:       message,
+		Buttons:       []string{"Yes", "No"},
+		DefaultButton: "No",
+		CancelButton:  "No",
+	})
+	if err != nil {
+		return false, err
+	}
+	return res == "Yes" || res == "Ok", nil
 }
