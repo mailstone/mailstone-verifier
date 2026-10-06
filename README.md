@@ -82,16 +82,18 @@ The language follows the system and can be switched at any time; every label, hi
 
 Download the latest release for your platform from the [Releases](https://github.com/mailstone/mailstone-verifier/releases) page:
 
-- **macOS**: `mailstone-verifier-darwin-amd64` (Intel) or `mailstone-verifier-darwin-arm64` (Apple Silicon)
-- **Linux**: `mailstone-verifier-linux-amd64`
+- **macOS**: `mailstone-verifier-darwin-arm64.zip` (Apple Silicon) or `mailstone-verifier-darwin-amd64.zip` (Intel) — unzip and open the `.app`
+- **Linux**: `mailstone-verifier-linux-amd64` (needs `libwebkit2gtk-4.1`, present on Ubuntu 22.04 and later)
 - **Windows**: `mailstone-verifier-windows-amd64.exe`
+
+`SHA256SUMS.txt` next to the binaries lets you check what you downloaded.
 
 On Linux, run `build/linux/install.sh` once (after `wails build`, or from a release archive): it installs the binary in `~/.local/bin`, the `.desktop` entry and the icon theme files. GNOME takes the dock and switcher icon from that entry, not from the window — without it the app shows a dark placeholder. `install.sh --remove` undoes it.
 
-Make the binary executable (macOS/Linux):
+Make the Linux binary executable:
 ```bash
-chmod +x mailstone-verifier-*
-./mailstone-verifier-darwin-arm64
+chmod +x mailstone-verifier-linux-amd64
+./mailstone-verifier-linux-amd64
 ```
 
 ### Build from Source
