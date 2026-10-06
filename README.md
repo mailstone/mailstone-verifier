@@ -60,6 +60,8 @@ Download the latest release for your platform from the [Releases](https://github
 - **Linux**: `mailstone-verifier-linux-amd64`
 - **Windows**: `mailstone-verifier-windows-amd64.exe`
 
+On Linux, run `build/linux/install.sh` once (after `wails build`, or from a release archive): it installs the binary in `~/.local/bin`, the `.desktop` entry and the icon theme files. GNOME takes the dock and switcher icon from that entry, not from the window — without it the app shows a dark placeholder. `install.sh --remove` undoes it.
+
 Make the binary executable (macOS/Linux):
 ```bash
 chmod +x mailstone-verifier-*

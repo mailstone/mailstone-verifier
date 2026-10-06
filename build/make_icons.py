@@ -48,7 +48,13 @@ def main() -> None:
     master.save(os.path.join(here, "windows", "icon.ico"), sizes=[(s, s) for s in sizes])
     rounded(master).save(os.path.join(here, "darwin", "iconfile.icns"))
     master.resize((512, 512), Image.LANCZOS).save(os.path.join(here, "linux", "appicon.png"))
-    print("icons written: appicon.png, windows/icon.ico, darwin/iconfile.icns, linux/appicon.png")
+    # Icon theme set for the .desktop entry (GNOME takes the dock icon from
+    # here, never from the window): hicolor/<size>x<size>/apps/<app id>.png
+    for s in (16, 24, 32, 48, 64, 128, 256, 512):
+        d = os.path.join(here, "linux", "icons", "hicolor", f"{s}x{s}", "apps")
+        os.makedirs(d, exist_ok=True)
+        master.resize((s, s), Image.LANCZOS).save(os.path.join(d, "mailstone-verifier.png"))
+    print("icons written: appicon.png, windows/icon.ico, darwin/iconfile.icns, linux/appicon.png, linux/icons/hicolor/*")
 
 
 if __name__ == "__main__":
