@@ -16,11 +16,12 @@ import (
 var assets embed.FS
 
 // Linux has no bundle to carry an icon. The window gets the one we hand
-// over at startup, but GNOME's dock and switcher ignore it: they look up a
-// .desktop entry named after the program name (the Wayland app id / X11
-// WM_CLASS) and take the icon from the icon theme — without that entry
-// they show a dark placeholder. build/linux/install.sh installs the entry
-// and the hicolor icons; ProgramName below must match its file name.
+// over at startup — 256 px at most: X11 silently drops a 512 px icon as
+// "too large" for its property limit, and the window then shows a dark
+// placeholder. Launchers and the GNOME dock look up a .desktop entry named
+// after the program name instead (the Wayland app id / X11 WM_CLASS) and
+// take the icon from the theme; build/linux/install.sh installs that entry
+// and the hicolor icons, and ProgramName below must match its file name.
 //
 //go:embed build/linux/appicon.png
 var linuxIcon []byte

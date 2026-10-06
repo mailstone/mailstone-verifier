@@ -14,7 +14,8 @@ Writes, next to this script:
   appicon.png          1024×1024 — Wails' source icon (macOS/Windows bundles)
   windows/icon.ico     16…256 px — embedded in the Windows executable
   darwin/iconfile.icns macOS bundle icon, corners rounded as macOS expects
-  linux/appicon.png    512 px — window icon (main.go) and hicolor/.desktop entry
+  linux/appicon.png    256 px — window icon handed to GTK by main.go (512 px is over the X11 limit)
+  linux/icons/hicolor  16…512 px — icon theme set for the .desktop entry (install.sh)
 """
 import os
 import sys
@@ -47,7 +48,10 @@ def main() -> None:
     sizes = [16, 24, 32, 48, 64, 128, 256]
     master.save(os.path.join(here, "windows", "icon.ico"), sizes=[(s, s) for s in sizes])
     rounded(master).save(os.path.join(here, "darwin", "iconfile.icns"))
-    master.resize((512, 512), Image.LANCZOS).save(os.path.join(here, "linux", "appicon.png"))
+    # The window icon handed to GTK at startup: X11 drops an icon whose
+    # pixel data exceeds its 256 KiB property limit — 512×512 is exactly
+    # over it and GTK silently ignores it ("icons too large") — so 256 px.
+    master.resize((256, 256), Image.LANCZOS).save(os.path.join(here, "linux", "appicon.png"))
     # Icon theme set for the .desktop entry (GNOME takes the dock icon from
     # here, never from the window): hicolor/<size>x<size>/apps/<app id>.png
     for s in (16, 24, 32, 48, 64, 128, 256, 512):
