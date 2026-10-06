@@ -15,8 +15,8 @@ coverage.html
 # Go workspace file
 go.work
 
-# Wails build output
-build/
+# Wails build output (the icons under build/ are sources, kept)
+build/bin/
 frontend/wailsjs/
 
 # IDE

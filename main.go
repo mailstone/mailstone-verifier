@@ -7,12 +7,24 @@ import (
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	"github.com/wailsapp/wails/v2/pkg/options/linux"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 )
 
 //go:embed all:frontend
 var assets embed.FS
+
+// Linux has no bundle to carry an icon. The window gets the one we hand
+// over at startup — 256 px at most: X11 silently drops a 512 px icon as
+// "too large" for its property limit, and the window then shows a dark
+// placeholder. Launchers and the GNOME dock look up a .desktop entry named
+// after the program name instead (the Wayland app id / X11 WM_CLASS) and
+// take the icon from the theme; build/linux/install.sh installs that entry
+// and the hicolor icons, and ProgramName below must match its file name.
+//
+//go:embed build/linux/appicon.png
+var linuxIcon []byte
 
 func main() {
 	// Create an instance of the app structure
@@ -47,6 +59,10 @@ func main() {
 			WebviewIsTransparent: false,
 			WindowIsTranslucent:  false,
 			DisableWindowIcon:    false,
+		},
+		Linux: &linux.Options{
+			Icon:        linuxIcon,
+			ProgramName: "mailstone-verifier", // = build/linux/mailstone-verifier.desktop
 		},
 	})
 

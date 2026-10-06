@@ -13,9 +13,9 @@
   "info": {
     "companyName": "MailStone",
     "productName": "MailStone Verifier",
-    "productVersion": "2.0.0",
+    "productVersion": "2.1.0",
     "copyright": "Copyright © 2025-2026 MailStone",
-    "comments": "Verify blockchain-anchored timestamps on emails and attachments"
+    "comments": "Verify blockchain-anchored proofs of certified emails and registered electronic deliveries"
   },
   "wailsjsdir": "./frontend",
   "assetdir": "./frontend",

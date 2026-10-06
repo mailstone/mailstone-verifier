@@ -1,4 +1,5 @@
-/* MailStone Verifier — Dark theme matching MailStone V2 frontend */
+/* MailStone Verifier — light theme on the MailStone charter: navy text,
+ * blue actions, orange accents (docs/marketing: #1f2b45 / #4372bf / #e28638). */
 
 * {
     margin: 0;
@@ -7,26 +8,30 @@
 }
 
 :root {
-    --bg: #02091A;
-    --surface: #0B1323;
-    --surface-elevated: #111b30;
-    --text: #FBFDFE;
-    --text-secondary: rgba(251, 253, 254, 0.72);
-    --text-tertiary: rgba(251, 253, 254, 0.45);
-    --border: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 255, 255, 0.16);
-    --accent: #4372BF;
-    --accent-hover: #5a8ad6;
-    --success: #10b981;
-    --success-bg: rgba(16, 185, 129, 0.12);
-    --error: #ef4444;
-    --error-bg: rgba(239, 68, 68, 0.12);
-    --warning: #f59e0b;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --surface-elevated: #f7f8fb;
+    --text: #1f2b45;
+    --text-secondary: #4b5563;
+    --text-tertiary: #6b7280;
+    --border: #e5e7eb;
+    --border-hover: #c9cfd9;
+    --accent: #4372bf;
+    --accent-hover: #335a96;
+    --accent-soft: #e9eff9;
+    --orange: #e28638;
+    --orange-soft: #fdf2e7;
+    --navy: #1f2b45;
+    --success: #15803d;
+    --success-bg: #ecfdf5;
+    --error: #a61b1b;
+    --error-bg: #fef2f2;
+    --warning: #e28638;
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: var(--bg);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f3f4f6;
     color: var(--text);
     min-height: 100vh;
 }
@@ -44,8 +49,9 @@ body {
     justify-content: space-between;
     padding: 0 24px;
     height: 52px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
+    background: var(--navy);
+    color: #ffffff;
+    border-bottom: 3px solid var(--orange);
     flex-shrink: 0;
     --wails-draggable: drag;
 }
@@ -68,14 +74,14 @@ body {
 }
 
 .topbar-separator {
-    color: var(--text-tertiary);
+    color: var(--orange);
     font-weight: 300;
 }
 
 .topbar-subtitle {
     font-size: 14px;
     font-weight: 500;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.82);
 }
 
 .topbar-right {
@@ -86,16 +92,17 @@ body {
 
 .topbar-version {
     font-size: 11px;
-    color: var(--text-tertiary);
-    background: var(--border);
+    color: #ffffff;
+    background: var(--orange);
     padding: 2px 8px;
     border-radius: 4px;
+    font-weight: 600;
 }
 
 .topbar-info-btn {
     background: none;
     border: none;
-    color: var(--text-secondary);
+    color: rgba(255, 255, 255, 0.82);
     cursor: pointer;
     padding: 6px;
     border-radius: 4px;
@@ -105,8 +112,8 @@ body {
 }
 
 .topbar-info-btn:hover {
-    background: var(--border);
-    color: var(--text);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
 }
 
 /* Container */
@@ -147,7 +154,7 @@ body {
 }
 
 .tab-button:hover {
-    background: var(--border);
+    background: var(--accent-soft);
     color: var(--text);
 }
 
@@ -173,6 +180,7 @@ body {
 .card {
     background: var(--surface);
     border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(31, 43, 69, 0.06);
     padding: 28px;
     border-radius: 0;
 }
@@ -181,7 +189,10 @@ body {
     font-size: 16px;
     font-weight: 700;
     margin-bottom: 6px;
-    color: var(--text);
+    color: var(--navy);
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--orange);
+    display: inline-block;
 }
 
 .description {
@@ -359,7 +370,7 @@ body {
     margin-top: 16px;
     padding: 16px;
     background: var(--error-bg);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid #fecaca;
     color: var(--error);
     border-radius: 0;
     font-size: 13px;
@@ -440,13 +451,13 @@ body {
 .merkle-row code.success {
     background: var(--success-bg);
     color: var(--success);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border: 1px solid #a7f3d0;
 }
 
 .merkle-row code.error {
     background: var(--error-bg);
     color: var(--error);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid #fecaca;
 }
 
 .merkle-path {
@@ -465,7 +476,7 @@ body {
 }
 
 .merkle-path summary:hover {
-    background: var(--border);
+    background: var(--accent-soft);
 }
 
 .path-steps {
@@ -513,7 +524,7 @@ footer {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(31, 43, 69, 0.55);
     backdrop-filter: blur(4px);
 }
 
@@ -596,3 +607,78 @@ footer {
 .modal-body strong {
     color: var(--text);
 }
+
+/* ---- ERE tab ---- */
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0 16px;
+}
+/* Fields of one row stay aligned even when a label wraps: the label takes
+   the slack, the input sits on the row's baseline. */
+.field-grid .input-group { display: flex; flex-direction: column; justify-content: flex-end; }
+/* Verdicts: more specific than `.result-box h3`, whose green would
+ * otherwise paint a ✗ as a success. */
+.verdict-ok, .result-box h3.verdict-ok { color: var(--success); }
+.verdict-ko, .result-box h3.verdict-ko { color: var(--error); }
+/* A 64-character digest or a UUID needs the whole row to be read in full. */
+.field-grid .input-group.wide { grid-column: 1 / -1; }
+.field-grid .input-group.wide .input-text { font-size: 12.5px; letter-spacing: 0.01em; }
+.where-to-find { background: var(--orange-soft); border-left: 3px solid var(--orange); padding: 10px 14px; margin: 0 0 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+.where-to-find strong { color: var(--text); }
+.card + .card { margin-top: 24px; }
+/* A native <select> does not inherit the field colours in WebKitGTK: the
+ * chosen value rendered invisible on the dark theme. */
+/* WebKitGTK paints a native control behind a <select> and ignores
+ * background-color until appearance is turned off: with the dark theme the
+ * chosen value vanished. With appearance off
+ * the field is ours to paint; the chevron is drawn here since the native
+ * one goes away with it. The open list is drawn by GTK (dark on white). */
+select.input-text {
+    height: 42px;
+    -webkit-appearance: none;
+    appearance: none;
+    color: var(--text);
+    background-color: #ffffff;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1l5 5 5-5' fill='none' stroke='%231f2b45' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+select.input-text option {
+    color: var(--text);
+    background-color: #ffffff;
+}
+
+/* ---- Language switch (topbar) ---- */
+.lang-switch { display: inline-flex; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 4px; overflow: hidden; }
+.lang-button { background: transparent; border: none; color: rgba(255, 255, 255, 0.82); font-size: 11px; font-weight: 600; padding: 3px 8px; cursor: pointer; letter-spacing: 0.04em; }
+.lang-button + .lang-button { border-left: 1px solid rgba(255, 255, 255, 0.35); }
+.lang-button:hover { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+.lang-button.active { background: var(--orange); color: #ffffff; }
+.file-status { margin: 8px 0 0; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.where-to-find ol { margin: 8px 0 0; padding-left: 20px; }
+.where-to-find li { margin: 4px 0; }
+
+/* ---- Repères partagés avec le Dossier de preuve : pastille ronde bleu nuit
+   = valeur à recopier (numéro), carré orange = bloc à coller (lettre). ---- */
+[data-mk]::before { content: attr(data-mk); display: inline-block; min-width: 15px; height: 15px; line-height: 15px; padding: 0 3px;
+  border-radius: 3px; background: var(--orange); color: #fff; font-size: 10px; font-weight: 700; text-align: center;
+  margin-right: 6px; vertical-align: 1px; font-family: Arial, Helvetica, sans-serif; }
+[data-mk].mk-num::before { border-radius: 50%; background: var(--navy, #1f2b45); }
+.mk-inline { display: inline-block; min-width: 15px; height: 15px; line-height: 15px; padding: 0 3px; border-radius: 3px; background: var(--orange); color: #fff; font-size: 10px; font-weight: 700; text-align: center; margin: 0 2px; font-family: Arial, Helvetica, sans-serif; }
+.mk-inline.mk-num { border-radius: 50%; background: var(--navy, #1f2b45); }
+
+/* ---- Session report: export / clear in the title bar ---- */
+.topbar-btn { display: inline-flex; align-items: center; gap: 5px; background: transparent; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 4px; color: rgba(255, 255, 255, 0.9); font-size: 11px; font-weight: 600; padding: 3px 8px; cursor: pointer; }
+.topbar-btn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #ffffff; }
+.topbar-btn:disabled { opacity: 0.45; cursor: default; }
+.topbar-btn .count { background: var(--orange); color: #fff; border-radius: 9px; min-width: 16px; height: 16px; line-height: 16px; font-size: 10px; text-align: center; padding: 0 4px; }
+.export-wrap { position: relative; }
+.export-menu { position: absolute; right: 0; top: 28px; background: #fff; border: 1px solid var(--border, #d8dde6); border-radius: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15); padding: 4px; z-index: 50; min-width: 180px; }
+.export-menu button { display: block; width: 100%; text-align: left; background: transparent; border: none; padding: 7px 10px; font-size: 12.5px; color: var(--text); cursor: pointer; border-radius: 4px; }
+.export-menu button:hover { background: var(--orange-soft, #fdf2e7); }
+.journal-note { margin: 10px 0 0; font-size: 11.5px; color: var(--text-secondary); font-style: italic; }
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--navy, #1f2b45); color: #fff; padding: 9px 14px; border-radius: 6px; font-size: 12.5px; max-width: 80vw; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); z-index: 60; word-break: break-all; }
+

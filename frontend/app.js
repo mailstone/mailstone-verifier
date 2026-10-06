@@ -1,3 +1,9 @@
+// Language: apply the saved/system language, then react to the switch.
+document.querySelectorAll('.lang-button').forEach((b) => {
+    b.addEventListener('click', () => applyLanguage(b.dataset.lang));
+});
+applyLanguage(currentLang);
+
 // Tab switching
 document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', () => {
@@ -69,7 +75,7 @@ hashDropZone.addEventListener('click', async () => {
             displayHashFile(filename);
         }
     } catch (error) {
-        hashError.textContent = `Error selecting file: ${error.message || error}`;
+        hashError.textContent = t('hash.selectError') + (error.message || error);
         hashError.style.display = 'block';
     }
 });
@@ -92,7 +98,7 @@ hashDropZone.addEventListener('drop', (e) => {
     hashDropZone.style.background = '#f7fafc';
 
     // Show error message for drag & drop
-    hashError.textContent = 'Drag & drop is not supported. Please click to browse files.';
+    hashError.textContent = t('hash.nodrop');
     hashError.style.display = 'block';
     setTimeout(() => {
         hashError.style.display = 'none';
@@ -111,7 +117,7 @@ hashCalculateBtn.addEventListener('click', async () => {
     if (!selectedFilePath) return;
 
     hashCalculateBtn.disabled = true;
-    hashCalculateBtn.textContent = 'Calculating...';
+    hashCalculateBtn.textContent = t('hash.busy');
     hashResult.style.display = 'none';
     hashError.style.display = 'none';
 
@@ -120,13 +126,15 @@ hashCalculateBtn.addEventListener('click', async () => {
 
         hashValue.textContent = hash;
         hashResult.style.display = 'block';
+        const size = await window.go.main.App.FileSize(selectedFilePath).catch(() => 0);
+        markAdded(hashResult, journalAdd({ operation: 'file_hash', file: { name: hashFilename.textContent, size }, sha256: hash }));
 
     } catch (error) {
-        hashError.textContent = `Error: ${error.message || error}`;
+        hashError.textContent = t('error.prefix') + (error.message || error);
         hashError.style.display = 'block';
     } finally {
         hashCalculateBtn.disabled = false;
-        hashCalculateBtn.textContent = 'Generate SHA-256 Hash';
+        hashCalculateBtn.textContent = t('hash.button');
     }
 });
 
@@ -141,7 +149,7 @@ hashCopyBtn.addEventListener('click', async () => {
             successMsg.style.display = 'none';
         }, 2000);
     } catch (error) {
-        alert('Failed to copy to clipboard');
+        alert(t('copy.failed'));
     }
 });
 
@@ -158,18 +166,19 @@ timestampDecodeBtn.addEventListener('click', async () => {
     const base64Token = timestampInput.value.trim();
 
     if (!base64Token) {
-        timestampError.textContent = 'Please paste a Base64 timestamp token';
+        timestampError.textContent = t('ts.empty');
         timestampError.style.display = 'block';
         return;
     }
 
     timestampDecodeBtn.disabled = true;
-    timestampDecodeBtn.textContent = 'Decoding...';
+    timestampDecodeBtn.textContent = t('ts.busy');
     timestampResult.style.display = 'none';
     timestampError.style.display = 'none';
 
     try {
-        const result = await window.go.main.App.DecodeTimestamp(base64Token);
+        const expectedHash = document.getElementById('timestamp-expected-hash').value.trim();
+        const result = await window.go.main.App.DecodeTimestamp(base64Token, expectedHash);
 
         if (result.error) {
             throw new Error(result.error);
@@ -182,14 +191,44 @@ timestampDecodeBtn.addEventListener('click', async () => {
         document.getElementById('ts-hash').textContent = result.timestampedHash;
         document.getElementById('ts-status').textContent = result.status;
 
+        const sigCell = document.getElementById('ts-signature');
+        sigCell.textContent = result.signatureVerified ? t('ts.sigOk') : t('ts.sigKo');
+        sigCell.className = result.signatureVerified ? 'verdict-ok' : 'verdict-ko';
+        document.getElementById('ts-signer').textContent = result.signerSubject || '—';
+        document.getElementById('ts-issuer').textContent = result.signerIssuer || '—';
+        document.getElementById('ts-validity').textContent = result.signerValidFrom ? `${result.signerValidFrom} → ${result.signerValidTo}` : '—';
+        const coversRow = document.getElementById('ts-covers-row');
+        const coversCell = document.getElementById('ts-covers');
+        if (result.coversHash) {
+            coversRow.style.display = '';
+            coversCell.textContent = result.coversHash === 'yes' ? t('ts.coversYes') : t('ts.coversNo');
+            coversCell.className = result.coversHash === 'yes' ? 'verdict-ok' : 'verdict-ko';
+        } else {
+            coversRow.style.display = 'none';
+        }
+        document.getElementById('ts-chain-note').textContent = result.chainNote || '';
+
         timestampResult.style.display = 'block';
+        markAdded(timestampResult, journalAdd({
+            operation: 'timestamp',
+            token: base64Token.replace(/\s+/g, ''),
+            expected_hash: expectedHash || null,
+            result: {
+                provider: result.provider, date_time: result.dateTime, serial_number: result.serialNumber,
+                hash_algo: result.hashAlgo, timestamped_hash: result.timestampedHash, status: result.status,
+                signature_verified: result.signatureVerified, signer_subject: result.signerSubject || '',
+                signer_issuer: result.signerIssuer || '', signer_valid_from: result.signerValidFrom || '',
+                signer_valid_to: result.signerValidTo || '', covers_hash: result.coversHash || null,
+                chain_note: result.chainNote || '',
+            },
+        }));
 
     } catch (error) {
-        timestampError.textContent = `Error: ${error.message || error}`;
+        timestampError.textContent = t('error.prefix') + (error.message || error);
         timestampError.style.display = 'block';
     } finally {
         timestampDecodeBtn.disabled = false;
-        timestampDecodeBtn.textContent = 'Decode TimeStamp';
+        timestampDecodeBtn.textContent = t('ts.button');
     }
 });
 
@@ -210,19 +249,13 @@ merkleVerifyBtn.addEventListener('click', async () => {
     const hash = merkleHashInput.value.trim();
 
     if (!merkleJson) {
-        merkleError.textContent = 'Please paste the Merkle JSON';
-        merkleError.style.display = 'block';
-        return;
-    }
-
-    if (!hash) {
-        merkleError.textContent = 'Please enter the hash to verify';
+        merkleError.textContent = t('merkle.empty');
         merkleError.style.display = 'block';
         return;
     }
 
     merkleVerifyBtn.disabled = true;
-    merkleVerifyBtn.textContent = 'Verifying...';
+    merkleVerifyBtn.textContent = t('merkle.busy');
     merkleResult.style.display = 'none';
     merkleError.style.display = 'none';
 
@@ -240,7 +273,7 @@ merkleVerifyBtn.addEventListener('click', async () => {
             // Success case
             document.getElementById('merkle-calc-root').textContent = result.calculatedRoot;
             document.getElementById('merkle-exp-root').textContent = result.expectedRoot;
-            document.getElementById('merkle-position').textContent = `Leaf #${result.leafIndex} / ${result.totalLeaves} total leaves`;
+            document.getElementById('merkle-position').textContent = t('merkle.leafOf', { index: result.leafIndex, total: result.totalLeaves });
             document.getElementById('merkle-type').textContent = result.leafType.toUpperCase();
 
             // Display merkle path steps
@@ -259,12 +292,391 @@ merkleVerifyBtn.addEventListener('click', async () => {
         }
 
         merkleResult.style.display = 'block';
+        let block = merkleJson;
+        try { block = JSON.parse(merkleJson); } catch (e) { /* keep the raw text */ }
+        markAdded(merkleResult, journalAdd({
+            operation: 'merkle', hash: hash || null, block,
+            result: { success: result.success, calculated_root: result.calculatedRoot, expected_root: result.expectedRoot,
+                leaf_index: result.leafIndex, total_leaves: result.totalLeaves, leaf_type: result.leafType || '' },
+        }));
 
     } catch (error) {
-        merkleError.textContent = `Error: ${error.message || error}`;
+        merkleError.textContent = t('error.prefix') + (error.message || error);
         merkleError.style.display = 'block';
     } finally {
         merkleVerifyBtn.disabled = false;
-        merkleVerifyBtn.textContent = 'Verify Merkle Proof';
+        merkleVerifyBtn.textContent = t('merkle.button');
     }
+});
+
+// ========================================
+// TAB 4: ERE Verification
+// ========================================
+
+// --- Recipient decision signature -------------------------------------
+const ereVerifyBtn = document.getElementById('ere-verify-btn');
+const ereSigResult = document.getElementById('ere-sig-result');
+const ereSigError = document.getElementById('ere-sig-error');
+
+ereVerifyBtn.addEventListener('click', async () => {
+    ereSigResult.style.display = 'none';
+    ereSigError.style.display = 'none';
+    ereVerifyBtn.disabled = true;
+    ereVerifyBtn.textContent = t('ere.sig.busy');
+    try {
+        const result = await window.go.main.App.VerifyEreDecision({
+            publicKey: document.getElementById('ere-pk-input').value.trim(),
+            signature: document.getElementById('ere-sig-input').value.trim(),
+            message: document.getElementById('ere-msg-input').value,
+            ereId: document.getElementById('ere-id-input').value.trim(),
+            decision: document.getElementById('ere-decision-input').value,
+            decidedAt: document.getElementById('ere-decided-input').value.trim(),
+        });
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        const title = document.getElementById('ere-sig-title');
+        const text = document.getElementById('ere-sig-text');
+        if (result.valid) {
+            title.textContent = t('ere.sig.validTitle');
+            title.className = 'verdict-ok';
+            text.textContent = t('ere.sig.validText');
+        } else {
+            title.textContent = t('ere.sig.invalidTitle');
+            title.className = 'verdict-ko';
+            text.textContent = t('ere.sig.invalidText');
+        }
+        document.getElementById('ere-sig-bytes').textContent = result.message.replace(/\n/g, '\\n\n');
+        ereSigResult.style.display = 'block';
+        markAdded(ereSigResult, journalAdd({
+            operation: 'ere_decision',
+            public_key: result.publicKey || document.getElementById('ere-pk-input').value.replace(/\s+/g, ''),
+            signature: document.getElementById('ere-sig-input').value.replace(/\s+/g, ''),
+            message: result.message,
+            result: { valid: result.valid },
+        }));
+    } catch (error) {
+        ereSigError.textContent = t('error.prefix') + (error.message || error);
+        ereSigError.style.display = 'block';
+    } finally {
+        ereVerifyBtn.disabled = false;
+        ereVerifyBtn.textContent = t('ere.sig.button');
+    }
+});
+
+// --- Event evidence hash ------------------------------------------------
+// The fields each event commits to, in the order the proof prints them.
+const EVIDENCE_FIELDS = {
+// [field name, label key] per event; labels are translated at render time.
+    deposit: [
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['sender_email', 'ere.ev.f.sender_email'],
+        ['recipient_email', 'ere.ev.f.recipient_email'],
+        ['subject', 'ere.ev.f.subject'],
+        ['content_hash', 'ere.ev.f.content_hash'],
+    ],
+    // Content: step 1 (the file) is rendered by renderEvidenceFields; these
+    // two are the file's digest and, optionally, the one printed in the proof.
+    content: [
+        ['content_hash', 'ere.ev.f.content_hash_file'],
+        ['printed_content_hash', 'ere.ev.f.printed_content_hash'],
+    ],
+    emission: [
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['provider_message_id', 'ere.ev.f.provider_message_id'],
+        ['submitted_at', 'ere.ev.f.submitted_at'],
+    ],
+    delivery: [
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['delivered_at', 'ere.ev.f.delivered_at'],
+        ['provider_message_id', 'ere.ev.f.provider_message_id'],
+    ],
+    presentation: [
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['ordinal', 'ere.ev.f.ordinal'],
+        ['presented_at', 'ere.ev.f.presented_at'],
+        ['provider_message_id', 'ere.ev.f.provider_message_id'],
+    ],
+    decision: [
+        ['signature', 'ere.ev.f.signature'],
+        ['received_at', 'ere.ev.f.received_at'],
+    ],
+    abort: [
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['sender_user_id', 'ere.ev.f.sender_user_id'],
+        ['aborted_at', 'ere.ev.f.aborted_at'],
+    ],
+    expiry: [
+        ['ere_id', 'ere.ev.f.ere_id'],
+        ['expires_at', 'ere.ev.f.expires_at'],
+    ],
+};
+const EVIDENCE_NOTES = {
+    emission: 'ere.ev.note.emission',
+};
+// The file chosen for the content stage (name + digest), kept across
+// re-renders so a language switch does not lose it.
+let evidenceFile = null;
+
+const ereStageSelect = document.getElementById('ere-stage-select');
+const ereEvidenceFields = document.getElementById('ere-evidence-fields');
+const ereEvidenceBtn = document.getElementById('ere-evidence-btn');
+const ereEvidenceResult = document.getElementById('ere-evidence-result');
+const ereEvidenceError = document.getElementById('ere-evidence-error');
+const ereEvidenceJson = document.getElementById('ere-evidence-json');
+
+// Values typed so far, by field name. ere_id, provider_message_id, the
+// content hash… are shared between events: switching the event keeps them.
+const evidenceValues = {};
+
+function renderEvidenceFields() {
+    const stage = ereStageSelect.value;
+    ereEvidenceFields.innerHTML = '';
+    ereEvidenceResult.style.display = 'none';
+    ereEvidenceError.style.display = 'none';
+    if (stage === 'content') {
+        // The leaf is the file's digest: the reader hashes the Email PDF
+        // here (step 1), compares it with the digest printed in the proof
+        // (step 2), then checks it against the content proof block (step 3).
+        const guide = document.createElement('div');
+        guide.className = 'where-to-find';
+        guide.innerHTML = t('ere.ev.content.guide');
+        ereEvidenceFields.appendChild(guide);
+        const group = document.createElement('div');
+        group.className = 'input-group wide';
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.textContent = t('ere.ev.hashFile');
+        const status = document.createElement('p');
+        status.className = 'description file-status';
+        status.id = 'ere-file-status';
+        const showStatus = () => {
+            status.textContent = evidenceFile ? t('ere.ev.fileStatus', { name: evidenceFile.name, hash: evidenceFile.hash }) : '';
+        };
+        btn.addEventListener('click', async () => {
+            try {
+                const filePath = await window.go.main.App.SelectFile();
+                if (!filePath) return;
+                const name = filePath.split(/[\\/]/).pop();
+                // The proof document is named like the Email PDF plus
+                // "-proof-N": hashing it is the classic wrong pick, and its
+                // digest can match nothing. Say so instead of hashing.
+                if (/-proof-\d+\.pdf$/i.test(name)) {
+                    ereEvidenceError.textContent = t('ere.ev.err.proofFile', { name });
+                    ereEvidenceError.style.display = 'block';
+                    return;
+                }
+                ereEvidenceError.style.display = 'none';
+                const hash = await window.go.main.App.CalculateHash(filePath);
+                evidenceFile = { name, hash };
+                evidenceValues.content_hash = hash;
+                const field = document.getElementById('ere-field-content_hash');
+                if (field) field.value = hash;
+                showStatus();
+            } catch (error) {
+                ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
+                ereEvidenceError.style.display = 'block';
+            }
+        });
+        group.appendChild(btn);
+        group.appendChild(status);
+        ereEvidenceFields.appendChild(group);
+        showStatus();
+    }
+    (EVIDENCE_FIELDS[stage] || []).forEach(([name, label], index) => {
+        const group = document.createElement('div');
+        group.className = ['content_hash', 'printed_content_hash', 'signature', 'ere_id', 'sender_user_id', 'provider_message_id'].includes(name)
+            ? 'input-group wide' : 'input-group';
+        const lab = document.createElement('label');
+        lab.setAttribute('for', `ere-field-${name}`);
+        lab.textContent = t(label);
+        // The proof document numbers the hashed inputs of each card in this
+        // very order: the same number here, so the reader copies ❶ into ❶.
+        // For the content stage the document prints one value, ❶, and the
+        // tool compares it with the file: both fields point at it.
+        const num = name === 'printed_content_hash' ? 1 : index + 1;
+        if (name !== 'content_hash' || stage !== 'content') {
+            lab.dataset.mk = String(num);
+            lab.classList.add('mk-num');
+        }
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = `ere-field-${name}`;
+        input.className = 'input-text';
+        input.dataset.field = name;
+        input.value = evidenceValues[name] || '';
+        input.addEventListener('input', () => { evidenceValues[name] = input.value; });
+        group.appendChild(lab);
+        group.appendChild(input);
+        ereEvidenceFields.appendChild(group);
+    });
+    if (EVIDENCE_NOTES[stage]) {
+        const note = document.createElement('p');
+        note.className = 'description';
+        note.textContent = t(EVIDENCE_NOTES[stage]);
+        ereEvidenceFields.appendChild(note);
+    }
+}
+ereStageSelect.addEventListener('change', renderEvidenceFields);
+document.addEventListener('languagechange', renderEvidenceFields);
+renderEvidenceFields();
+
+// checkAgainstBlock: with the event's proof block pasted, confirm the
+// recomputed leaf is the block's leaf and that the root reconstructs.
+// showPrintedVerdict: the file's digest against the one printed in the
+// proof document (content stage only). Same digest = same document, byte
+// for byte; a different one is almost always the wrong file.
+function showPrintedVerdict(fileHash, printed) {
+    const box = document.getElementById('ere-evidence-printed');
+    const title = document.getElementById('ere-evidence-printed-title');
+    const text = document.getElementById('ere-evidence-printed-text');
+    if (ereStageSelect.value !== 'content' || !printed || !evidenceFile) {
+        box.style.display = 'none';
+        return;
+    }
+    if (fileHash === printed) {
+        title.textContent = t('ere.ev.printedOkTitle');
+        title.className = 'verdict-ok';
+        text.textContent = t('ere.ev.printedOkText', { name: evidenceFile.name });
+    } else {
+        title.textContent = t('ere.ev.printedKoTitle');
+        title.className = 'verdict-ko';
+        text.textContent = t('ere.ev.printedKoText', { name: evidenceFile.name, file: fileHash, printed });
+    }
+    box.style.display = 'block';
+}
+
+async function checkAgainstBlock(leafHash) {
+    const box = document.getElementById('ere-evidence-block');
+    const title = document.getElementById('ere-evidence-block-title');
+    const text = document.getElementById('ere-evidence-block-text');
+    const json = ereEvidenceJson.value.trim();
+    if (!json) {
+        box.style.display = 'none';
+        return null;
+    }
+    let blockLeaf = '';
+    try {
+        const parsed = JSON.parse(json);
+        if (parsed.leaves && parsed.leaves.length === 1) blockLeaf = (parsed.leaves[0].leaf_hash || '').toLowerCase();
+    } catch (e) {
+        title.textContent = t('ere.ev.badJson');
+        title.className = 'verdict-ko';
+        text.textContent = e.message || String(e);
+        box.style.display = 'block';
+        return { verdict: false, error: t('ere.ev.badJson') };
+    }
+    const result = await window.go.main.App.VerifyMerkle({ merkleJson: json, hash: leafHash });
+    if (result.success) {
+        title.textContent = t('ere.ev.okTitle');
+        title.className = 'verdict-ok';
+        text.textContent = t('ere.ev.okText', { index: result.leafIndex, total: result.totalLeaves, root: result.calculatedRoot });
+    } else {
+        title.textContent = t('ere.ev.koTitle');
+        title.className = 'verdict-ko';
+        text.textContent = blockLeaf
+            ? t('ere.ev.koText', { blockLeaf, leaf: leafHash })
+            : (result.error || t('ere.ev.koNoLeaf'));
+    }
+    box.style.display = 'block';
+    return {
+        verdict: !!result.success, leaf_index: result.leafIndex, total_leaves: result.totalLeaves,
+        root_hash: result.calculatedRoot, expected_root: result.expectedRoot, block_leaf: blockLeaf || null,
+    };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SHA256_RE = /^[0-9a-f]{64}$/i;
+function checkFieldShapes(fields) {
+    for (const name of ['ere_id', 'sender_user_id']) {
+        if (name in fields) {
+            const v = fields[name].replace(/\s+/g, '');
+            if (v && !UUID_RE.test(v)) {
+                return t('ere.ev.err.uuid', { field: t('ere.ev.f.' + name), len: v.length, value: v });
+            }
+        }
+    }
+    for (const [name, label] of [['content_hash', 'ere.ev.f.content_hash'], ['printed_content_hash', 'ere.ev.f.printed_content_hash']]) {
+        if (name in fields) {
+            const v = fields[name].replace(/\s+/g, '');
+            if (v && !SHA256_RE.test(v)) {
+                return t('ere.ev.err.hex', { field: t(label), len: v.length });
+            }
+        }
+    }
+    return '';
+}
+
+ereEvidenceBtn.addEventListener('click', async () => {
+    ereEvidenceResult.style.display = 'none';
+    ereEvidenceError.style.display = 'none';
+    const fields = {};
+    ereEvidenceFields.querySelectorAll('input[data-field]').forEach((input) => {
+        fields[input.dataset.field] = input.value;
+    });
+    // A UUID or a SHA-256 has a fixed length: a value of another length is a
+    // copy that lost or gained a character. Say so before hashing anything —
+    // a silent mismatch would send the reader hunting through every fact.
+    const shapeError = checkFieldShapes(fields);
+    if (shapeError) {
+        ereEvidenceError.textContent = shapeError;
+        ereEvidenceError.style.display = 'block';
+        return;
+    }
+    // The printed digest is compared here, not hashed: with no file chosen
+    // it is the digest to check against the block.
+    const printed = (fields.printed_content_hash || '').replace(/\s+/g, '').toLowerCase();
+    delete fields.printed_content_hash;
+    if (ereStageSelect.value === 'content' && !fields.content_hash.trim() && printed) {
+        fields.content_hash = printed;
+    }
+    ereEvidenceBtn.disabled = true;
+    try {
+        const result = await window.go.main.App.ComputeEreEvidenceHash({ stage: ereStageSelect.value, fields });
+        if (result.error) {
+            throw new Error(result.error);
+        }
+        document.getElementById('ere-evidence-hash').textContent = result.leafHash;
+        document.getElementById('ere-evidence-canonical').textContent = result.canonical.replace(/\n/g, '\\n\n');
+        showPrintedVerdict(result.leafHash, printed);
+        ereEvidenceResult.style.display = 'block';
+        const block = await checkAgainstBlock(result.leafHash);
+        const isContent = ereStageSelect.value === 'content';
+        markAdded(ereEvidenceResult, journalAdd({
+            operation: 'ere_evidence',
+            event: ereStageSelect.value,
+            inputs: fields,
+            file: isContent && evidenceFile ? { name: evidenceFile.name, hash: evidenceFile.hash } : null,
+            canonical: isContent ? null : result.canonical,
+            leaf_hash: result.leafHash,
+            printed_hash: isContent && printed ? printed : null,
+            printed_matches: isContent && printed && evidenceFile ? result.leafHash === printed : null,
+            proof_block: block,
+        }));
+    } catch (error) {
+        ereEvidenceError.textContent = t('error.prefix') + (error.message || error);
+        ereEvidenceError.style.display = 'block';
+    } finally {
+        ereEvidenceBtn.disabled = false;
+    }
+});
+
+document.getElementById('ere-evidence-copy-btn').addEventListener('click', async () => {
+    try {
+        await navigator.clipboard.writeText(document.getElementById('ere-evidence-hash').textContent);
+        const msg = ereEvidenceResult.querySelector('.success-message');
+        msg.style.display = 'block';
+        setTimeout(() => { msg.style.display = 'none'; }, 2000);
+    } catch (error) {
+        alert(t('copy.failed'));
+    }
+});
+
+// Hand the leaf to the Merkle tab: the reader pastes that event's proof
+// block there and verifies.
+document.getElementById('ere-evidence-to-merkle-btn').addEventListener('click', () => {
+    merkleHashInput.value = document.getElementById('ere-evidence-hash').textContent;
+    if (ereEvidenceJson.value.trim()) merkleJsonInput.value = ereEvidenceJson.value.trim();
+    document.querySelector('.tab-button[data-tab="merkle"]').click();
+    merkleJsonInput.focus();
 });
