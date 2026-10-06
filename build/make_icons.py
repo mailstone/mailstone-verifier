@@ -11,9 +11,12 @@ the alpha-handling differences between icon loaders (an RGBA icon showed up
 as a black tile on one Linux desktop).
 
 Writes, next to this script:
-  appicon.png          1024×1024 — Wails' source icon (macOS/Windows bundles)
-  windows/icon.ico     16…256 px — embedded in the Windows executable
-  darwin/iconfile.icns macOS bundle icon, corners rounded as macOS expects
+  appicon.png          1024×1024, corners rounded — the ONLY source Wails uses for
+                       the macOS bundle: `wails build` converts it to .icns itself
+                       (a hand-made darwin/iconfile.icns is ignored). macOS does
+                       not mask app icons, so the rounding is baked in here.
+  windows/icon.ico     16…256 px — read by `wails build` and embedded as the
+                       executable's resource icon
   linux/appicon.png    256 px — window icon handed to GTK by main.go (512 px is over the X11 limit)
   linux/icons/hicolor  16…512 px — icon theme set for the .desktop entry (install.sh)
 """
@@ -42,12 +45,11 @@ def main() -> None:
     master = Image.new("RGBA", src.size, (255, 255, 255, 255))
     master.alpha_composite(src)
     master = master.resize((SIZE, SIZE), Image.LANCZOS)
-    master.save(os.path.join(here, "appicon.png"))
-    for sub in ("windows", "darwin", "linux"):
+    rounded(master).save(os.path.join(here, "appicon.png"))
+    for sub in ("windows", "linux"):
         os.makedirs(os.path.join(here, sub), exist_ok=True)
     sizes = [16, 24, 32, 48, 64, 128, 256]
     master.save(os.path.join(here, "windows", "icon.ico"), sizes=[(s, s) for s in sizes])
-    rounded(master).save(os.path.join(here, "darwin", "iconfile.icns"))
     # The window icon handed to GTK at startup: X11 drops an icon whose
     # pixel data exceeds its 256 KiB property limit — 512×512 is exactly
     # over it and GTK silently ignores it ("icons too large") — so 256 px.
@@ -58,7 +60,7 @@ def main() -> None:
         d = os.path.join(here, "linux", "icons", "hicolor", f"{s}x{s}", "apps")
         os.makedirs(d, exist_ok=True)
         master.resize((s, s), Image.LANCZOS).save(os.path.join(d, "mailstone-verifier.png"))
-    print("icons written: appicon.png, windows/icon.ico, darwin/iconfile.icns, linux/appicon.png, linux/icons/hicolor/*")
+    print("icons written: appicon.png (macOS source), windows/icon.ico, linux/appicon.png, linux/icons/hicolor/*")
 
 
 if __name__ == "__main__":

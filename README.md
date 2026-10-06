@@ -269,10 +269,9 @@ mailstone-verifier/
 │   └── app.js              # Frontend logic
 ├── build/
 │   ├── make_icons.py       # Generates the icons below from the MailStone mark
-│   ├── appicon.png         # Source icon (macOS / Windows bundles)
+│   ├── appicon.png         # macOS source icon (wails build turns it into the .icns)
 │   ├── windows/icon.ico    # Windows executable icon
-│   ├── darwin/iconfile.icns# macOS bundle icon
-│   └── linux/appicon.png   # Linux window icon
+│   └── linux/              # Window icon, .desktop entry, hicolor icons, install.sh
 ├── go.mod
 ├── wails.json
 ├── README.md
