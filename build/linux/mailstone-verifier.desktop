@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=MailStone Verifier
+Comment=Verify MailStone proofs offline (hashes, RFC 3161 timestamps, Merkle trees, ERE decisions)
+Exec=mailstone-verifier
+Icon=mailstone-verifier
+Terminal=false
+Categories=Utility;Security;
+StartupWMClass=mailstone-verifier

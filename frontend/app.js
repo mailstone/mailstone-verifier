@@ -454,13 +454,22 @@ function renderEvidenceFields() {
         ereEvidenceFields.appendChild(group);
         showStatus();
     }
-    (EVIDENCE_FIELDS[stage] || []).forEach(([name, label]) => {
+    (EVIDENCE_FIELDS[stage] || []).forEach(([name, label], index) => {
         const group = document.createElement('div');
         group.className = ['content_hash', 'printed_content_hash', 'signature', 'ere_id', 'sender_user_id', 'provider_message_id'].includes(name)
             ? 'input-group wide' : 'input-group';
         const lab = document.createElement('label');
         lab.setAttribute('for', `ere-field-${name}`);
         lab.textContent = t(label);
+        // The proof document numbers the hashed inputs of each card in this
+        // very order: the same number here, so the reader copies ❶ into ❶.
+        // For the content stage the document prints one value, ❶, and the
+        // tool compares it with the file: both fields point at it.
+        const num = name === 'printed_content_hash' ? 1 : index + 1;
+        if (name !== 'content_hash' || stage !== 'content') {
+            lab.dataset.mk = String(num);
+            lab.classList.add('mk-num');
+        }
         const input = document.createElement('input');
         input.type = 'text';
         input.id = `ere-field-${name}`;

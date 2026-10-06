@@ -93,7 +93,7 @@
             <div class="tab-content" id="timestamp-tab">
                 <div class="card">
                     <h2 data-i18n="ts.title">Decode RFC 3161 TimeStamp</h2>
-                    <p class="description" data-i18n="ts.desc">Paste the Base64-encoded TSA timestamp token from your proof document.</p>
+                    <p class="description" data-mk="T" data-i18n="ts.desc">Paste the Base64-encoded TSA timestamp token from your proof document.</p>
 
                     <textarea
                         id="timestamp-input"
@@ -104,7 +104,7 @@
                     ></textarea>
 
                     <div class="input-group">
-                        <label for="timestamp-expected-hash" data-i18n="ts.expected">Hash the token should cover (optional — a Merkle root from a proof block, or a file hash):</label>
+                        <label for="timestamp-expected-hash" data-mk="R" data-i18n="ts.expected">Hash the token should cover (optional — a Merkle root from a proof block, or a file hash):</label>
                         <input type="text" id="timestamp-expected-hash" class="input-text" data-i18n-placeholder="ts.expectedPlaceholder" placeholder="64 hex characters">
                     </div>
 
@@ -139,7 +139,7 @@
                     <p class="description" data-i18n="merkle.desc">Verify that a hash is included in the Merkle tree and reconstruct the root.</p>
 
                     <div class="input-group">
-                        <label for="merkle-json-input" data-i18n="merkle.json">Merkle JSON (from proof document):</label>
+                        <label for="merkle-json-input" data-mk="M" data-i18n="merkle.json">Merkle JSON (from proof document):</label>
                         <textarea
                             id="merkle-json-input"
                             class="input-textarea"
@@ -198,15 +198,15 @@
                     <div class="where-to-find" data-i18n-html="ere.sig.where"></div>
 
                     <div class="input-group">
-                        <label for="ere-pk-input" data-i18n="ere.sig.pk">Recipient public key (Ed25519, base64):</label>
+                        <label for="ere-pk-input" data-mk="K" data-i18n="ere.sig.pk">Recipient public key (Ed25519, base64):</label>
                         <input type="text" id="ere-pk-input" class="input-text" data-i18n-placeholder="ere.sig.pkPlaceholder" placeholder="44 base64 characters, ends with =">
                     </div>
                     <div class="input-group">
-                        <label for="ere-sig-input" data-i18n="ere.sig.sig">Signature (Ed25519, base64):</label>
+                        <label for="ere-sig-input" data-mk="S" data-i18n="ere.sig.sig">Signature (Ed25519, base64):</label>
                         <input type="text" id="ere-sig-input" class="input-text" data-i18n-placeholder="ere.sig.sigPlaceholder" placeholder="88 base64 characters, ends with ==">
                     </div>
                     <div class="input-group">
-                        <label for="ere-msg-input" data-i18n="ere.sig.msg">Exact message signed by the recipient (paste the four-line block as printed):</label>
+                        <label for="ere-msg-input" data-mk="P" data-i18n="ere.sig.msg">Exact message signed by the recipient (paste the four-line block as printed):</label>
                         <textarea id="ere-msg-input" class="input-textarea" rows="5" placeholder="ere/decision/v1&#10;ere_id=…&#10;decision=accepted&#10;decided_at=2026-10-05T09:36:36Z"></textarea>
                     </div>
                     <p class="description" data-i18n="ere.sig.or">Or build the message from its fields (the fields win when both are given):</p>
@@ -251,7 +251,7 @@
                     <div class="field-grid" id="ere-evidence-fields"></div>
 
                     <div class="input-group">
-                        <label for="ere-evidence-json" data-i18n="ere.ev.block">Proof block of this event (optional):</label>
+                        <label for="ere-evidence-json" data-mk="M" data-i18n="ere.ev.block">Proof block of this event (optional):</label>
                         <textarea id="ere-evidence-json" class="input-textarea" rows="6" placeholder='{ "root_hash": "...", "leaf_count": 7, "leaves": [ { "leaf_hash": "...", "merkle_path": [ ... ] } ], ... }'></textarea>
                     </div>
 
