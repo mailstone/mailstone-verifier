@@ -18,7 +18,7 @@ NC='\033[0m' # No Color
 echo "Checking Go installation..."
 if ! command -v go &> /dev/null; then
     echo -e "${RED}❌ Go is not installed${NC}"
-    echo "Please install Go 1.21+ from https://golang.org/dl/"
+    echo "Please install Go 1.26+ from https://golang.org/dl/"
     exit 1
 fi
 

@@ -6,7 +6,7 @@ Build, develop, and release MailStone Verifier from source.
 
 ## Prerequisites
 
-### Go 1.24+
+### Go 1.26+
 
 Install from [golang.org/dl](https://golang.org/dl/) and verify:
 
