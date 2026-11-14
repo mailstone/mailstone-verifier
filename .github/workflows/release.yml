@@ -1,6 +1,6 @@
 # Builds the four binaries on every version tag and attaches them to a
 # GitHub release. macOS cannot be cross-compiled from Linux (Cocoa + cgo):
-# both macOS targets are built on an Apple-silicon runner (Go cross-builds
+# both macOS targets are built on an Apple-silicon macos-15 runner (Go cross-builds
 # darwin/amd64 there). Windows is cross-compiled from Linux, which works as
 # long as go-webview2 stays at the version Wails pins. Linux links
 # WebKitGTK 4.1 (build tag webkit2_41): the 4.0 ABI no longer ships on
@@ -29,11 +29,11 @@ jobs:
             platform: windows/amd64
             output: mailstone-verifier-windows-amd64.exe
             flags: ""
-          - os: macos-14
+          - os: macos-15
             platform: darwin/amd64
             output: mailstone-verifier-darwin-amd64
             flags: ""
-          - os: macos-14
+          - os: macos-15
             platform: darwin/arm64
             output: mailstone-verifier-darwin-arm64
             flags: ""
