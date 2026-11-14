@@ -30,6 +30,26 @@ infoBtn.addEventListener('click', () => {
     infoModal.style.display = 'block';
 });
 
+// Licence and third-party notices (LICENSE and THIRD-PARTY-NOTICES.md, embedded in the binary)
+const aboutLegal = document.getElementById('about-legal');
+const aboutLegalText = document.getElementById('about-legal-text');
+aboutLegal.addEventListener('click', async (e) => {
+    e.preventDefault();
+    if (aboutLegalText.hidden) {
+        if (!aboutLegalText.textContent) {
+            const [license, notices] = await Promise.all([
+                window.go.main.App.GetLicense(), window.go.main.App.GetThirdPartyNotices()]);
+            aboutLegalText.textContent = license + '\n\n' + notices;
+        }
+        aboutLegalText.hidden = false;
+        aboutLegal.dataset.i18n = 'about.legalHide';
+    } else {
+        aboutLegalText.hidden = true;
+        aboutLegal.dataset.i18n = 'about.legalShow';
+    }
+    aboutLegal.textContent = t(aboutLegal.dataset.i18n);
+});
+
 // Close modal on close button click
 modalClose.addEventListener('click', () => {
     infoModal.style.display = 'none';

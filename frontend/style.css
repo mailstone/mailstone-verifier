@@ -592,6 +592,22 @@ footer {
     font-size: 13px;
 }
 
+.modal-body a {
+    color: var(--accent);
+}
+
+.legal-text {
+    max-height: 40vh;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 12px;
+    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
+}
+
 .modal-body ul {
     margin-left: 20px;
     margin-bottom: 12px;

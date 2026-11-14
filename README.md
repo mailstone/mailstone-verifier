@@ -4,7 +4,7 @@
 
 # MailStone Verifier
 
-![MailStone Verifier](https://img.shields.io/badge/version-2.1.0-blue)
+![MailStone Verifier](https://img.shields.io/badge/version-2.1.1-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Go Version](https://img.shields.io/badge/go-1.26+-00ADD8?logo=go)
 
@@ -334,8 +334,10 @@ mailstone-verifier/
 │   ├── windows/icon.ico    # Windows executable icon
 │   └── linux/              # Window icon, .desktop entry, hicolor icons, install.sh
 ├── go.mod
+├── scripts/mentions-tiers.sh  # Generates THIRD-PARTY-NOTICES.md
 ├── wails.json
 ├── README.md
+├── THIRD-PARTY-NOTICES.md
 └── LICENSE
 ```
 
@@ -375,6 +377,10 @@ Contributions are welcome! Please follow these guidelines:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+The open-source components compiled into the application are listed, with the text of their licences, in
+[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) (also shown in About, and attached to each release). After a change of
+dependency, regenerate it with `scripts/mentions-tiers.sh`; `scripts/mentions-tiers.sh --verifier` checks it is up to date.
 
 ---
 

@@ -184,7 +184,7 @@ func (a *App) ComputeEreEvidenceHash(req EreEvidenceRequest) (*evidence.Result, 
 }
 
 // appVersion is printed in the report header (keep in step with wails.json).
-const appVersion = "2.1.0"
+const appVersion = "2.1.1"
 
 // AppInfo heads an exported report.
 type AppInfo struct {
