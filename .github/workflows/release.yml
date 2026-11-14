@@ -48,6 +48,9 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libgtk-3-dev libwebkit2gtk-4.1-dev
+      - name: Third-party notices up to date
+        if: matrix.platform == 'linux/amd64'
+        run: scripts/mentions-tiers.sh --verifier
       - name: Install the Wails CLI at the module's version
         run: go install github.com/wailsapp/wails/v2/cmd/wails@$(go list -m -f '{{.Version}}' github.com/wailsapp/wails/v2)
       - name: Build
@@ -76,8 +79,15 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - uses: actions/checkout@v4
+        with:
+          path: src
+          sparse-checkout: THIRD-PARTY-NOTICES.md
+          sparse-checkout-cone-mode: false
       - name: Checksums
-        run: cd dist && sha256sum * > SHA256SUMS.txt
+        run: |
+          cp src/THIRD-PARTY-NOTICES.md dist/
+          cd dist && sha256sum * > SHA256SUMS.txt
       - uses: softprops/action-gh-release@v2
         with:
           files: dist/*
