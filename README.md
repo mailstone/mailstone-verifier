@@ -6,7 +6,7 @@
 
 ![MailStone Verifier](https://img.shields.io/badge/version-2.1.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Go Version](https://img.shields.io/badge/go-1.24+-00ADD8?logo=go)
+![Go Version](https://img.shields.io/badge/go-1.26+-00ADD8?logo=go)
 
 **MailStone Verifier** is an open-source desktop application for verifying the proofs MailStone issues: certified emails (*mail opposable*) and registered electronic deliveries (*Envoi Recommandé Électronique*, ERE). It provides four tools:
 
@@ -117,7 +117,7 @@ make dev
 #### Manual Setup
 
 **Prerequisites:**
-- Go 1.24 or higher
+- Go 1.26 or higher
 - Wails v2 (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
 - Platform dependencies (see [BUILD.md](BUILD.md))
 
@@ -341,7 +341,7 @@ mailstone-verifier/
 
 ### Technologies
 
-- **Backend:** Go 1.24+
+- **Backend:** Go 1.26+
   - [Wails v2](https://wails.io/) - Desktop app framework
   - Go standard library `crypto/sha256` - SHA-256 hashing
   - [digitorus/timestamp](https://github.com/digitorus/timestamp) - RFC 3161 parsing

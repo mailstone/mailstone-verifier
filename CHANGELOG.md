@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Security
+
+- **Go 1.26** — `go.mod` now requires Go 1.26 and pins the `go1.26.10` toolchain. The release workflow takes its Go version from `go.mod`, so the published binaries were built with Go 1.24.0, a release that no longer receives security fixes. They are now built with Go 1.26.10, whose `crypto/x509` distrusts the compromised intermediate certificates of GO-2026-6809 when the TimeStamp Decoder verifies a token's certificate.
+- **Dependencies** — `golang.org/x/net` v0.49.0 → v0.62.0 (seven advisories in its HTML parser, reached through Wails' asset server on the application's own page), `golang.org/x/crypto` v0.48.0 → v0.58.0, and `github.com/labstack/echo/v4` v4.13.3 → v4.16.1 (GHSA-cxf3-9h37-7rr8, critical). echo is only linked by the Wails development server (`wails dev`), never by the release binaries. `go-webview2` stays at v1.0.19, the version Wails v2.10.2 compiles against.
+
 ## [2.1.0] - 2026-10-05
 
 ### Added
